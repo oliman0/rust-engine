@@ -1,0 +1,56 @@
+#![allow(unused_assignments)]
+
+mod gl_window;
+mod sprite;
+mod shader;
+mod rglfw;
+mod camera;
+mod mesh;
+mod level;
+mod texture;
+mod framebuffer;
+
+const SCR_WIDTH: i32 = 1920;
+const SCR_HEIGHT: i32 = 1080;
+const DISP_WIDTH: i32 = 384;
+const DISP_HEIGHT: i32 = 216;
+
+fn gl_clear() {unsafe {gl::ClearColor(0.07, 0.13, 0.17, 1.0); gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);}}
+
+fn main() {
+    let main_window = gl_window::Window::create_window("OpenGL", SCR_WIDTH, SCR_HEIGHT, DISP_WIDTH, DISP_HEIGHT);
+    let mut level = level::Level::new();
+    let framebuffer = framebuffer::FrameBuffer::new(DISP_WIDTH, DISP_HEIGHT);
+    let mut camera = camera::Camera::new();
+    let projection = nalgebra_glm::perspective(110.0 / camera::TO_RADIANS, SCR_WIDTH as f32/SCR_HEIGHT as f32, 0.1, 150.0);
+    
+    let shader = shader::Shader::create_shaders(
+        "C:\\Users\\FiercePC\\projects\\rustgraphics\\shaders\\vertex_shader.vert",
+        "C:\\Users\\FiercePC\\projects\\rustgraphics\\shaders\\fragment_shader.frag");
+    shader.set_uniform_mat4("projection", &projection);
+
+    level.add_obj(mesh::Mesh::new_notex(nalgebra_glm::vec3(0.0, 0.0, 0.0), 1.0, 1.0, 1.0, nalgebra_glm::vec4(1.0, 0.5, 0.2, 1.0)));
+    level.add_obj(mesh::Mesh::new(nalgebra_glm::vec3(0.0, -2.5, 0.0), 10.0, 0.0, 10.0, "largecheck"));
+
+    let (mut delta_time, mut last_time, mut current_time): (f32, f32, f32) = (0.0, 0.0, 0.0);
+
+    while !main_window.should_close() {
+        current_time = rglfw::get_time();
+        delta_time = current_time - last_time;
+        last_time = current_time;
+        
+        framebuffer.bind();
+
+        gl_clear();
+        camera.update(&main_window, delta_time);
+
+        level.draw(&shader);
+
+        shader.set_uniform_mat4("view", &camera.view());
+
+        framebuffer.copy_to_default_buffer();
+        
+        main_window.swap_buffers();
+        main_window.poll_events();
+    }
+}
