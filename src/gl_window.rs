@@ -52,7 +52,7 @@ impl Window {
                 x_offset: 0.0,
                 y_offset: 0.0,
                 mouse_input: false,
-                sensitivity: 0.1
+                sensitivity: 5.0
         });
         
         rglfw::glfwMakeContextCurrent(WINDOW_USER.get().unwrap().window);

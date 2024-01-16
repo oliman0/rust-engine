@@ -39,8 +39,8 @@ impl Camera {
         }
 
         if window.is_mouse_input() {
-            self.yaw += window.get_mouse_xoffset();
-            self.pitch += window.get_mouse_yoffset();
+            self.yaw += window.get_mouse_xoffset() * delta_time;
+            self.pitch += window.get_mouse_yoffset() * delta_time;
         }
 
         if self.pitch > 89.0 { self.pitch =  89.0 }
