@@ -19,18 +19,15 @@ fn gl_clear() {unsafe {gl::ClearColor(0.07, 0.13, 0.17, 1.0); gl::Clear(gl::COLO
 
 fn main() {
     let main_window = gl_window::Window::create_window("OpenGL", SCR_WIDTH, SCR_HEIGHT, DISP_WIDTH, DISP_HEIGHT);
-    let mut level = level::Level::new();
+    let mut level = level::Level::new("level");
     let framebuffer = framebuffer::FrameBuffer::new(DISP_WIDTH, DISP_HEIGHT);
-    let mut camera = camera::Camera::new();
+    let mut camera = camera::Camera::new(nalgebra_glm::vec3(5.0, 2.5, 0.0));
     let projection = nalgebra_glm::perspective(110.0 / camera::TO_RADIANS, SCR_WIDTH as f32/SCR_HEIGHT as f32, 0.1, 150.0);
     
     let shader = shader::Shader::create_shaders(
         "C:\\Users\\FiercePC\\projects\\rustgraphics\\shaders\\vertex_shader.vert",
         "C:\\Users\\FiercePC\\projects\\rustgraphics\\shaders\\fragment_shader.frag");
     shader.set_uniform_mat4("projection", &projection);
-
-    level.add_obj(mesh::Mesh::new_notex(nalgebra_glm::vec3(0.0, 0.0, 0.0), 1.0, 1.0, 1.0, nalgebra_glm::vec4(1.0, 0.5, 0.2, 1.0)));
-    level.add_obj(mesh::Mesh::new(nalgebra_glm::vec3(0.0, -2.5, 0.0), 10.0, 0.0, 10.0, "largecheck"));
 
     let (mut delta_time, mut last_time, mut current_time): (f32, f32, f32) = (0.0, 0.0, 0.0);
 
@@ -43,7 +40,8 @@ fn main() {
 
         gl_clear();
         camera.update(&main_window, delta_time);
-
+        
+        level.update(&main_window);
         level.draw(&shader);
 
         shader.set_uniform_mat4("view", &camera.view());

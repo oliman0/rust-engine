@@ -8,6 +8,11 @@ use nalgebra_glm::*;
 use crate::shader::Shader;
 use crate::texture;
 
+// SPRITE DOES NOT HAVE IMPLEMENTATION FOR TEXTURES
+// missing uv mappings
+// missing attribute pointers for texture
+// DO NOT USE UNTILL IMPLEMENTED
+
 pub struct Sprite {
     vao: u32,
     ibo: u32,
