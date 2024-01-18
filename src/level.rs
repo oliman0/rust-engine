@@ -1,5 +1,7 @@
 use std::fs::read_to_string;
 
+use nalgebra_glm::*;
+
 use crate::mesh;
 use crate::shader;
 use crate::gl_window;
@@ -40,16 +42,25 @@ impl Level {
         let mut i = 0;
         while i < lines.len() {
             if lines[i] == "[WALL]" {
+                let x1 = lines[i+1].parse::<f32>().unwrap();
+                let z1 = lines[i+2].parse::<f32>().unwrap();
+                let x2 = lines[i+3].parse::<f32>().unwrap();
+                let z2 = lines[i+4].parse::<f32>().unwrap();
+                let y = lines[i+6].parse::<f32>().unwrap();
+                let uv_multiplier = lines[i+7].parse::<f32>().unwrap();
+                let uv_x = distance(&vec2(x2, z2), &vec2(x1, z1)) / uv_multiplier;
+                let uv_y = y / uv_multiplier;
+
                 let vertices: [f32; 30] = [
-                    lines[i+1].parse::<f32>().unwrap(), 0.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 0.0,
-                    lines[i+1].parse::<f32>().unwrap(), 10.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 1.0,
-                    lines[i+3].parse::<f32>().unwrap(), 0.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 0.0,
-                    lines[i+3].parse::<f32>().unwrap(), 0.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 0.0,
-                    lines[i+3].parse::<f32>().unwrap(), 10.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 1.0,
-                    lines[i+1].parse::<f32>().unwrap(), 10.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 1.0
+                    x1, 0.0, z1, 0.0,   uv_y,
+                    x1, y, z1,   0.0,   0.0,
+                    x2, 0.0, z2, uv_x,  uv_y,
+                    x2, 0.0, z2, uv_x,  uv_y,
+                    x2, y, z2,   uv_x,  0.0,
+                    x1, y, z1,   0.0,   0.0
                 ];
                 self.add_obj(mesh::Mesh::new_vertices(&vertices, 30, &lines[i+5]));
-                i += 6;
+                i += 8;
             }
         }
     }
@@ -63,16 +74,25 @@ impl Level {
         let mut i = 0;
         while i < lines.len() {
             if lines[i] == "[WALL]" {
+                let x1 = lines[i+1].parse::<f32>().unwrap();
+                let z1 = lines[i+2].parse::<f32>().unwrap();
+                let x2 = lines[i+3].parse::<f32>().unwrap();
+                let z2 = lines[i+4].parse::<f32>().unwrap();
+                let y = lines[i+6].parse::<f32>().unwrap();
+                let uv_multiplier = lines[i+7].parse::<f32>().unwrap();
+                let uv_x = distance(&vec2(x2, z2), &vec2(x1, z1)) / uv_multiplier;
+                let uv_y = y / uv_multiplier;
+
                 let vertices: [f32; 30] = [
-                    lines[i+1].parse::<f32>().unwrap(), 0.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 0.0,
-                    lines[i+1].parse::<f32>().unwrap(), 10.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 1.0,
-                    lines[i+3].parse::<f32>().unwrap(), 0.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 0.0,
-                    lines[i+3].parse::<f32>().unwrap(), 0.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 0.0,
-                    lines[i+3].parse::<f32>().unwrap(), 10.0, lines[i+4].parse::<f32>().unwrap(), 1.0, 1.0,
-                    lines[i+1].parse::<f32>().unwrap(), 10.0, lines[i+2].parse::<f32>().unwrap(), 0.0, 1.0
+                    x1, 0.0, z1, 0.0,   uv_y,
+                    x1, y, z1,   0.0,   0.0,
+                    x2, 0.0, z2, uv_x,  uv_y,
+                    x2, 0.0, z2, uv_x,  uv_y,
+                    x2, y, z2,   uv_x,  0.0,
+                    x1, y, z1,   0.0,   0.0
                 ];
                 self.add_obj(mesh::Mesh::new_vertices(&vertices, 30, &lines[i+5]));
-                i += 6;
+                i += 8;
             }
         }
     }
