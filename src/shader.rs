@@ -5,14 +5,14 @@ use std::str;
 
 use gl::types::*;
 
-use nalgebra_glm::*;
+use nalgebra_glm;
 
 pub struct Shader {
     shader_program: u32
 }
 
 impl Shader {
-    pub fn create_shaders(v_path: &str, f_path: &str) -> Self {
+    pub fn new(v_path: &str, f_path: &str) -> Self {
         let vshader_s = fs::read_to_string(v_path)
             .expect("Should have been able to read the file");
         let fshader_s = fs::read_to_string(f_path)
@@ -69,7 +69,7 @@ impl Shader {
     }
     pub fn use_shader(&self) {unsafe{gl::UseProgram(self.shader_program)}}
     
-    pub fn set_uniform_mat4(&self, name: &str, value: &Mat4) {
+    pub fn set_uniform_mat4(&self, name: &str, value: &nalgebra_glm::Mat4) {
         unsafe {
             let cname = CString::new(name.as_bytes()).unwrap();
 
@@ -78,7 +78,7 @@ impl Shader {
             gl::UniformMatrix4fv(iloc, 1, 0, value.as_ptr());
         }
     }
-    pub fn set_uniform_vec4(&self, name: &str, value: &Vec4) {
+    pub fn set_uniform_vec4(&self, name: &str, value: &nalgebra_glm::Vec4) {
         unsafe {
             let cname = CString::new(name.as_bytes()).unwrap();
 

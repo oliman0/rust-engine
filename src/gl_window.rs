@@ -16,11 +16,12 @@ pub struct Window {
     x_offset: f32,
     y_offset: f32,
     mouse_input: bool,
-    sensitivity: f32
+    sensitivity: f32,
+    gl_lines: bool
 }
 
 impl Window {
-    pub fn create_window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, viewport_h: i32) -> &mut Self {
+    pub fn new(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, viewport_h: i32) -> &mut Self {
         unsafe {
 
         // glfw: initialize and configure
@@ -52,7 +53,8 @@ impl Window {
                 x_offset: 0.0,
                 y_offset: 0.0,
                 mouse_input: false,
-                sensitivity: 5.0
+                sensitivity: 5.0,
+                gl_lines: false
         });
         
         rglfw::glfwMakeContextCurrent(WINDOW_USER.get().unwrap().window);
@@ -72,7 +74,12 @@ impl Window {
         let mut h: i32 = 0;
         rglfw::glfwGetFramebufferSize(WINDOW_USER.get().unwrap().window, &mut w, &mut h);
         gl::Viewport(0, 0, viewport_w, viewport_h);
+
         gl::Enable(gl::DEPTH_TEST);
+
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+
         rglfw::glfwSwapInterval(1);
        
         WINDOW_USER.get_mut().unwrap()
@@ -86,6 +93,20 @@ impl Window {
     pub fn get_mouse_xoffset(&self) -> f32 { self.x_offset }
     pub fn get_mouse_yoffset(&self) -> f32 { self.y_offset }
     pub fn is_mouse_input(&self) -> bool { self.mouse_input }
+    pub fn wireframe(&mut self) {
+        unsafe {
+            if self.get_key_down(rglfw::KEY_Q) && !self.gl_lines
+	        {
+		        gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+		        self.gl_lines = !self.gl_lines;
+	        }
+	        else if self.get_key_down(rglfw::KEY_Q) && self.gl_lines
+	        {
+		        gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+		        self.gl_lines = !self.gl_lines;
+	        }
+        }
+    }
 }
 
 fn handle_keys(window: &mut rglfw::GLFWwindow, key: i32, _code: i32, action: i32, _mode: i32) {

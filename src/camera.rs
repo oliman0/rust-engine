@@ -1,30 +1,30 @@
-use nalgebra_glm::*;
+use nalgebra_glm;
 use crate::rglfw;
-use crate::gl_window;
+use crate::gl_window::Window;
 
 pub const TO_RADIANS: f32 = 180.0/3.1415926;
 
 pub struct Camera {
-    position: Vec3,
-    up: Vec3,
-    front: Vec3,
-    look_front: Vec3,
+    position: nalgebra_glm::Vec3,
+    up: nalgebra_glm::Vec3,
+    front: nalgebra_glm::Vec3,
+    look_front: nalgebra_glm::Vec3,
     speed: f32,
     yaw: f32,
     pitch: f32
 }
 
 impl Camera {
-    pub fn new(pos: Vec3) -> Self { 
+    pub fn new(pos: nalgebra_glm::Vec3) -> Self { 
         Self { position: pos,
-               up: vec3(0.0, 1.0, 0.0),
-               front: vec3(0.0, 0.0, -1.0),
-               look_front: vec3(0.0, 0.0, -1.0),
+               up: nalgebra_glm::vec3(0.0, 1.0, 0.0),
+               front: nalgebra_glm::vec3(0.0, 0.0, -1.0),
+               look_front: nalgebra_glm::vec3(0.0, 0.0, -1.0),
                speed: 10.0,
                yaw: 0.0,
                pitch: 0.0 }
     }
-    pub fn update(&mut self, window: &gl_window::Window, delta_time: f32) {
+    pub fn update(&mut self, window: &Window, delta_time: f32) {
         if window.get_key(rglfw::KEY_W) {
             self.position += (self.speed * delta_time) * self.front;
         }   
@@ -46,14 +46,14 @@ impl Camera {
         if self.pitch > 89.0 { self.pitch =  89.0 }
         if self.pitch < -89.0 { self.pitch = -89.0 }
 
-        let mut direction: Vec3 = vec3(0.0, 0.0, 0.0);
+        let mut direction: nalgebra_glm::Vec3 = nalgebra_glm::vec3(0.0, 0.0, 0.0);
         direction.x = (self.yaw / TO_RADIANS).cos() * (self.pitch / TO_RADIANS).cos();
         direction.z = (self.yaw / TO_RADIANS).sin() * (self.pitch / TO_RADIANS).cos();
-        self.front = normalize(&direction);
+        self.front = nalgebra_glm::normalize(&direction);
         direction.y = (self.pitch / TO_RADIANS).sin();
-        self.look_front = normalize(&direction);
+        self.look_front = nalgebra_glm::normalize(&direction);
     }
-    pub fn view(&self) -> Mat4 {
+    pub fn view(&self) -> nalgebra_glm::Mat4 {
         nalgebra_glm::look_at(
             &self.position, 
             &(self.position + self.look_front),
