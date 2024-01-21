@@ -25,6 +25,7 @@ fn main() {
     let mut level = level::Level::new("level");
     let framebuffer = framebuffer::FrameBuffer::new(DISP_WIDTH, DISP_HEIGHT);
     let mut camera = camera::Camera::new(nalgebra_glm::vec3(5.0, 2.5, 0.0));
+
     let projection = nalgebra_glm::perspective(110.0 / camera::TO_RADIANS, SCR_WIDTH as f32/SCR_HEIGHT as f32, 0.1, 150.0);
     
     let shader = shader::Shader::new(
@@ -42,13 +43,18 @@ fn main() {
         framebuffer.bind();
 
         gl_clear();
+
         camera.update(&main_window, delta_time);
-        
+        shader.set_uniform_mat4("view", &camera.view());
+
         level.update(&main_window);
         level.draw(&shader);
+        
+        shader.set_uniform_mat4("projection", &nalgebra_glm::ortho(0.0, 384.0, 0.0, 216.0, -1.0, 1.0));
+        //shader.set_uniform_mat4("projection", &nalgebra_glm::identity());
+        shader.set_uniform_mat4("view", &nalgebra_glm::identity());
         ui_manager.draw_string("", &shader);
-
-        shader.set_uniform_mat4("view", &camera.view());
+        shader.set_uniform_mat4("projection", &projection);
 
         framebuffer.copy_to_default_buffer();
 

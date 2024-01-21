@@ -59,13 +59,13 @@ impl Mesh {
 		    0.0,		 sizey,	 0.0,	  0.0, 0.0,
 		    0.0,		 sizey,	-sizez,  0.0, 1.0 ];   
 
-        let vao = create_vao(&vertices, 3);
+        let vao = create_vao(&vertices);
 
         Self {vao: vao, position: pos, colour: colour, using_texture: using_texture, texture: texture, vert_to_draw: 32}
     }
 
     pub fn new_vertices(vertices: &[f32], numofvertices: usize, texture: &str) -> Self {
-        let vao = create_vao(vertices, 3); 
+        let vao = create_vao(vertices); 
 
         Self {vao: vao, position: nalgebra_glm::vec3(0.0, 0.0, 0.0), colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0),
               using_texture: true, texture: generate_texture(texture), vert_to_draw: numofvertices as i32/5}

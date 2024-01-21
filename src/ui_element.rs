@@ -26,13 +26,13 @@ impl UIElement {
 
         //vertex data
         let vertices: [f32; 20] = [
-            0.0, 0.0, 0.0,       0.0, 0.0,
-             sizex, 0.0, 0.0,    1.0, 0.0,
-             sizex,  sizey, 0.0, 1.0, 1.0,
-            0.0,  sizey, 0.0,    0.0, 1.0
+            0.0, 0.0, 0.0,       0.0, 1.0,
+             sizex, 0.0, 0.0,    1.0, 1.0,
+             sizex,  sizey, 0.0, 1.0, 0.0,
+            0.0,  sizey, 0.0,    0.0, 0.0
         ];
 
-        let (vao, ibo) = create_vao_and_ibo(&vertices, &indices, 2);
+        let (vao, ibo) = create_vao_and_ibo(&vertices, &indices);
 
         Self {vao: vao, ibo: ibo, i_count: 6, position: pos, colour: colour, using_texture: using_texture, texture: texture}
     }

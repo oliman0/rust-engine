@@ -2,7 +2,7 @@ use std::{mem, ptr, ffi::c_void};
 
 use gl::types::*;
 
-pub fn create_vao(vertices: &[f32], dimentions: i32) -> u32 {
+pub fn create_vao(vertices: &[f32]) -> u32 {
     unsafe {
         let (mut vbo, mut vao) = (0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -15,9 +15,9 @@ pub fn create_vao(vertices: &[f32], dimentions: i32) -> u32 {
             &vertices[0] as *const f32 as *const c_void,
             gl::STATIC_DRAW);
 
-        gl::VertexAttribPointer(0, dimentions, gl::FLOAT, gl::FALSE, (dimentions + 2) * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 5 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, (dimentions + 2) * mem::size_of::<GLfloat>() as GLsizei,
+        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, 5 * mem::size_of::<GLfloat>() as GLsizei,
                                (3 * mem::size_of::<GLfloat>()) as *const c_void);
         gl::EnableVertexAttribArray(1);
 
@@ -33,7 +33,7 @@ pub fn create_vao(vertices: &[f32], dimentions: i32) -> u32 {
     }
 }
 
-pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32], dimentions: i32) -> (u32, u32) {
+pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32]) -> (u32, u32) {
     unsafe {
         let (mut vbo, mut ibo, mut vao) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -53,9 +53,9 @@ pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32], dimentions: i32) ->
             &vertices[0] as *const f32 as *const c_void,
             gl::STATIC_DRAW);
 
-        gl::VertexAttribPointer(0, dimentions, gl::FLOAT, gl::FALSE, (dimentions + 2) * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 5 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, (dimentions + 2) * mem::size_of::<GLfloat>() as GLsizei,
+        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, 5 * mem::size_of::<GLfloat>() as GLsizei,
                                     (3 * mem::size_of::<GLfloat>()) as *const c_void);
         gl::EnableVertexAttribArray(1);
 

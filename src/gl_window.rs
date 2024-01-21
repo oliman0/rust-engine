@@ -76,6 +76,7 @@ impl Window {
         gl::Viewport(0, 0, viewport_w, viewport_h);
 
         gl::Enable(gl::DEPTH_TEST);
+        gl::DepthFunc(gl::LEQUAL);
 
         gl::Enable(gl::BLEND);
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
