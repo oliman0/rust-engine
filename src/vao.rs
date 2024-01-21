@@ -2,7 +2,7 @@ use std::{mem, ptr, ffi::c_void};
 
 use gl::types::*;
 
-pub fn create_vao(vertices: &[f32]) -> u32 {
+pub fn create_vao(vertices: &[f32]) -> (u32, u32) {
     unsafe {
         let (mut vbo, mut vao) = (0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -29,11 +29,11 @@ pub fn create_vao(vertices: &[f32]) -> u32 {
         // vaos requires a call to glBindVertexArray anyways so we generally don't unbind vaos (nor vbos) when it's not directly necessary.
         gl::BindVertexArray(0);
 
-        vao
+        (vao, vbo)
     }
 }
 
-pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32]) -> (u32, u32) {
+pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32]) -> (u32, u32, u32) {
     unsafe {
         let (mut vbo, mut ibo, mut vao) = (0, 0, 0);
         gl::GenVertexArrays(1, &mut vao);
@@ -67,6 +67,6 @@ pub fn create_vao_and_ibo(vertices: &[f32], indices: &[i32]) -> (u32, u32) {
         // vaos requires a call to glBindVertexArray anyways so we generally don't unbind vaos (nor vbos) when it's not directly necessary.
         gl::BindVertexArray(0);
 
-        (vao, ibo)
+        (vao, vbo, ibo)
     }
 }

@@ -10,7 +10,7 @@
     void main() {
       if (usingTexture)
 	    {
-		    FragColor = texture(tex, texCoord);
+		    FragColor = vCol * texture(tex, texCoord);
 	    }
 	    else if (!usingTexture)
 	    {

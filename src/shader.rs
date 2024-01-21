@@ -11,6 +11,13 @@ pub struct Shader {
     shader_program: u32
 }
 
+impl Drop for Shader {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.shader_program);
+        }
+    }
+}
 impl Shader {
     pub fn new(v_path: &str, f_path: &str) -> Self {
         let vshader_s = fs::read_to_string(v_path)

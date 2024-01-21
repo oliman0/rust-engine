@@ -8,6 +8,15 @@ pub struct FrameBuffer {
     height: i32
 }
 
+impl Drop for FrameBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteFramebuffers(1, &self.fbo);
+            gl::DeleteRenderbuffers(1, &self.rbo);
+            gl::DeleteTextures(1, &self.texture);
+        }
+    }
+}
 impl FrameBuffer {
     fn new_blank() -> Self { Self {fbo: 0, texture: 0, rbo: 0, height: 0, width: 0} }
     pub fn new(scr_width: i32, scr_height: i32) -> Self {

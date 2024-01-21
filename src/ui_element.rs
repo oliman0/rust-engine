@@ -8,6 +8,7 @@ use crate::vao::create_vao_and_ibo;
 
 pub struct UIElement {
     vao: u32,
+    vbo: u32,
     ibo: u32,
     i_count: i32,
     position: nalgebra_glm::Vec3,
@@ -16,6 +17,16 @@ pub struct UIElement {
     texture: u32
 }   
 
+impl Drop for UIElement {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteVertexArrays(1, &self.vao);
+            gl::DeleteBuffers(1, &self.vbo);
+            gl::DeleteBuffers(1, &self.ibo);
+            gl::DeleteTextures(1, &self.texture);
+        }
+    }
+}
 impl UIElement {
     fn create(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, texture: u32, colour: nalgebra_glm::Vec4, using_texture: bool) -> Self {
         //index data
@@ -32,9 +43,9 @@ impl UIElement {
             0.0,  sizey, 0.0,    0.0, 0.0
         ];
 
-        let (vao, ibo) = create_vao_and_ibo(&vertices, &indices);
+        let (vao, vbo, ibo) = create_vao_and_ibo(&vertices, &indices);
 
-        Self {vao: vao, ibo: ibo, i_count: 6, position: pos, colour: colour, using_texture: using_texture, texture: texture}
+        Self {vao: vao, vbo: vbo, ibo: ibo, i_count: 6, position: pos, colour: colour, using_texture: using_texture, texture: texture}
     }
     
     pub fn new(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, texture: &str) -> Self {

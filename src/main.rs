@@ -11,6 +11,7 @@ mod texture;
 mod framebuffer;
 mod ui_manager;
 mod vao;
+mod font;
 
 const SCR_WIDTH: i32 = 1920;
 const SCR_HEIGHT: i32 = 1080;
@@ -27,11 +28,21 @@ fn main() {
     let mut camera = camera::Camera::new(nalgebra_glm::vec3(5.0, 2.5, 0.0));
 
     let projection = nalgebra_glm::perspective(110.0 / camera::TO_RADIANS, SCR_WIDTH as f32/SCR_HEIGHT as f32, 0.1, 150.0);
+    let ui_projection = nalgebra_glm::ortho(0.0, DISP_WIDTH as f32, 0.0, DISP_HEIGHT as f32, -1.0, 1.0);
     
     let shader = shader::Shader::new(
-        "./shaders/vertex_shader.vert",
-        "./shaders/fragment_shader.frag");
+        "./shaders/shader.vert",
+        "./shaders/shader.frag");
+    let ui_shader = shader::Shader::new(
+        "./shaders/ui_shader.vert",
+        "./shaders/ui_shader.frag");
+    let text_shader = shader::Shader::new(
+        "./shaders/ui_shader.vert",
+        "./shaders/text_shader.frag"
+    );
     shader.set_uniform_mat4("projection", &projection);
+    ui_shader.set_uniform_mat4("projection", &ui_projection);
+    text_shader.set_uniform_mat4("projection", &ui_projection);
 
     let (mut delta_time, mut last_time, mut current_time): (f32, f32, f32) = (0.0, 0.0, 0.0);
 
@@ -50,11 +61,7 @@ fn main() {
         level.update(&main_window);
         level.draw(&shader);
         
-        shader.set_uniform_mat4("projection", &nalgebra_glm::ortho(0.0, 384.0, 0.0, 216.0, -1.0, 1.0));
-        //shader.set_uniform_mat4("projection", &nalgebra_glm::identity());
-        shader.set_uniform_mat4("view", &nalgebra_glm::identity());
-        ui_manager.draw_string("", &shader);
-        shader.set_uniform_mat4("projection", &projection);
+        ui_manager.draw(&ui_shader, &text_shader);
 
         framebuffer.copy_to_default_buffer();
 

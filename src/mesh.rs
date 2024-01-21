@@ -6,6 +6,7 @@ use crate::vao::create_vao;
 
 pub struct Mesh {
     vao: u32,
+    vbo: u32,
     position: nalgebra_glm::Vec3,
     colour: nalgebra_glm::Vec4,
     using_texture: bool,
@@ -13,6 +14,15 @@ pub struct Mesh {
     vert_to_draw: i32
 }   
 
+impl Drop for Mesh {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteVertexArrays(1, &self.vao);
+            gl::DeleteBuffers(1, &self.vbo);
+            gl::DeleteTextures(1, &self.texture);
+        }
+    }
+}
 impl Mesh {
     fn create(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, sizez: f32, texture: u32, colour: nalgebra_glm::Vec4, using_texture: bool) -> Self { 
         //index data
@@ -59,15 +69,15 @@ impl Mesh {
 		    0.0,		 sizey,	 0.0,	  0.0, 0.0,
 		    0.0,		 sizey,	-sizez,  0.0, 1.0 ];   
 
-        let vao = create_vao(&vertices);
+        let (vao, vbo) = create_vao(&vertices);
 
-        Self {vao: vao, position: pos, colour: colour, using_texture: using_texture, texture: texture, vert_to_draw: 32}
+        Self {vao: vao, vbo: vbo, position: pos, colour: colour, using_texture: using_texture, texture: texture, vert_to_draw: 32}
     }
 
     pub fn new_vertices(vertices: &[f32], numofvertices: usize, texture: &str) -> Self {
-        let vao = create_vao(vertices); 
+        let (vao, vbo) = create_vao(vertices); 
 
-        Self {vao: vao, position: nalgebra_glm::vec3(0.0, 0.0, 0.0), colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0),
+        Self {vao: vao, vbo: vbo, position: nalgebra_glm::vec3(0.0, 0.0, 0.0), colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0),
               using_texture: true, texture: generate_texture(texture), vert_to_draw: numofvertices as i32/5}
     }
     pub fn new(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, sizez: f32, texture: &str) -> Self {

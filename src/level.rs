@@ -28,7 +28,6 @@ impl Level {
     }
     pub fn update(&mut self, window: &Window) {
         if window.get_key_down(rglfw::KEY_R) {
-            self.objects.clear();
             self.reload();
         }
     }
@@ -64,7 +63,7 @@ impl Level {
             }
         }
     }
-    fn reload(&mut self) {
+    fn reload(&mut self) { 
         self.objects.clear();
         self.load(self.levelname.to_owned().as_str()); 
     }
