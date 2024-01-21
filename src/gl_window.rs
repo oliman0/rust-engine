@@ -20,6 +20,13 @@ pub struct Window {
     gl_lines: bool
 }
 
+impl Drop for Window {
+    fn drop(&mut self) {
+        unsafe {
+            rglfw::glfwTerminate();
+        }
+    }
+}
 impl Window {
     pub fn new(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, viewport_h: i32) -> &mut Self {
         unsafe {
