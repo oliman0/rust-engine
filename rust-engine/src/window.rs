@@ -10,11 +10,10 @@ static mut INPUT_HANDLER: OnceLock<InputHandler> = OnceLock::new();
 pub struct InputHandler {
     keys: [bool; 1024],
     hold_keys: [bool; 1024],
-    last_x: f32,
-    last_y: f32,
-    x_offset: f32,
-    y_offset: f32,
-    mouse_input: bool,
+    mouse_x: f32,
+    mouse_y: f32,
+    mouse_x_offset: f32,
+    mouse_y_offset: f32,
     sensitivity: f32,
     gl_lines: bool
 }
@@ -22,10 +21,9 @@ pub struct InputHandler {
 impl InputHandler {
     pub fn get_key(&self, key: i32) -> bool { self.hold_keys[key as usize] }
     pub fn get_key_down(&self, key: i32) -> bool { self.keys[key as usize] }
-    pub fn get_mouse_xoffset(&self) -> f32 { self.x_offset }
-    pub fn get_mouse_yoffset(&self) -> f32 { self.y_offset }
-    pub fn is_mouse_input(&self) -> bool { self.mouse_input }
-    pub fn reset(&mut self) { self.mouse_input = false; self.keys = [false; 1024]; }
+    pub fn get_mouse_pos(&self) -> nalgebra_glm::Vec2 { nalgebra_glm::vec2(self.mouse_x, self.mouse_y) }
+    pub fn get_mouse_offset(&self) -> nalgebra_glm::Vec2 { nalgebra_glm::vec2(self.mouse_x_offset, self.mouse_y_offset) }
+    pub fn reset(&mut self) { (self.mouse_x_offset, self.mouse_y_offset) = (0.0, 0.0); self.keys = [false; 1024]; }
     pub fn wireframe(&mut self) {
         unsafe {
             if self.get_key_down(rglfw::KEY_Q) && !self.gl_lines
@@ -45,11 +43,10 @@ fn input_handler(sensitivity: f32) -> InputHandler {
     InputHandler {
         keys: [false; 1024],
         hold_keys: [false; 1024],
-        last_x: 0.0,
-        last_y: 0.0,
-        x_offset: 0.0,
-        y_offset: 0.0,
-        mouse_input: false,
+        mouse_x: 0.0,
+        mouse_y: 0.0,
+        mouse_x_offset: 0.0,
+        mouse_y_offset: 0.0,
         sensitivity: sensitivity,
         gl_lines: false
     }
@@ -57,7 +54,8 @@ fn input_handler(sensitivity: f32) -> InputHandler {
 
 pub struct Window {
     window: * mut rglfw::GLFWwindow,
-    last_time: f32
+    last_time: f32,
+    cursor_locked: bool
 }
 
 impl Drop for Window {
@@ -71,6 +69,15 @@ impl Window {
     pub fn swap_buffers(&self) {unsafe {glfw::ffi::glfwSwapBuffers(self.window);}}
     pub fn should_close(&self) -> bool {unsafe { if rglfw::glfwWindowShouldClose(self.window) == 1 {true} else {false}}}
     pub fn poll_events(&mut self) { unsafe {rglfw::glfwPollEvents();} }
+    pub fn get_cursor_locked(&self) -> bool { self.cursor_locked }
+    pub fn set_cursor_locked(&mut self, locked: bool) {
+        self.cursor_locked = locked;
+
+        unsafe {
+            if locked { rglfw::glfwSetInputMode(self.window, rglfw::CURSOR, rglfw::CURSOR_DISABLED); }
+            else { rglfw::glfwSetInputMode(self.window, rglfw::CURSOR, rglfw::CURSOR_NORMAL); }
+        }
+    }
   
     pub fn get_deltatime(&mut self) -> f32 {
         let current_time = rglfw::get_time();
@@ -107,12 +114,11 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     let ctitle = CString::new(title.as_bytes()).unwrap();
     let window = Window {
             window: rglfw::glfwCreateWindow(scr_width, scr_height, ctitle.as_ptr(), ptr::null_mut(), ptr::null_mut()),
-            last_time: 0.0
+            last_time: 0.0,
+            cursor_locked: true
     };
     
     rglfw::glfwMakeContextCurrent(window.window);
-    
-    rglfw::glfwSetInputMode(window.window, 0x00033001, 0x00034003);
 
     rglfw::glfwSetKeyCallback(window.window, std::mem::transmute(handle_keys as *const ()));
     rglfw::glfwSetCursorPosCallback(window.window, std::mem::transmute(handle_mouse as *const ()));
@@ -169,13 +175,11 @@ fn handle_mouse(_window: &mut rglfw::GLFWwindow, xpos_in: f64, ypos_in: f64) {
     let xpos = xpos_in as f32;
     let ypos = ypos_in as f32;
 
-    window_user.x_offset = xpos - window_user.last_x;
-    window_user.y_offset = window_user.last_y - ypos;
-    window_user.last_x = xpos;
-    window_user.last_y = ypos;
+    window_user.mouse_x_offset = xpos - window_user.mouse_x;
+    window_user.mouse_y_offset = window_user.mouse_y - ypos;
+    window_user.mouse_x = xpos;
+    window_user.mouse_y = ypos;
 
-    window_user.x_offset *= window_user.sensitivity;
-    window_user.y_offset *= window_user.sensitivity;
-
-    window_user.mouse_input = true;
+    window_user.mouse_x_offset *= window_user.sensitivity;
+    window_user.mouse_y_offset *= window_user.sensitivity;
 }

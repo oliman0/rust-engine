@@ -132,13 +132,43 @@ impl UI {
 
         for char in str.chars() {
             if char as i32 == 32 {
-                position.x += 3.0
+                position.x += 3.0 * text_size
             }
             else {
                 self.draw_character(&self.characters[char as usize], text_size, &position, colour, shader);
-                position.x += self.characters[char as usize].width + 1.0;
+                position.x += (self.characters[char as usize].width * text_size) + text_size;
             }
         }
+    }
+    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, shader: &Shader, text_shader: &Shader) {
+        let mut position = *pos;
+
+        let str_size = self.get_string_size(str, text_size);
+        self.draw_sprite(0, &position, &nalgebra_glm::vec2(str_size.x, str_size.y + (2.0 * text_size)), bg_colour, false, shader);
+
+        for char in str.chars() {
+            if char as i32 == 32 {
+                position.x += 3.0 * text_size
+            }
+            else {
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour, text_shader);
+                position.x += (self.characters[char as usize].width * text_size) + text_size;
+            }
+        }
+    }
+    pub fn get_string_size(&self, str: &str, text_size: f32) -> nalgebra_glm::Vec2 {
+        let mut size = nalgebra_glm::vec2(0.0, self.char_height * text_size);
+
+        for char in str.chars() {
+            if char as i32 == 32 {
+                size.x += 3.0 * text_size
+            }
+            else {
+                size.x += (self.characters[char as usize].width * text_size) + text_size;
+            }
+        }
+
+        size
     }
     fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
         unsafe {

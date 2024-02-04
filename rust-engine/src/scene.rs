@@ -5,7 +5,7 @@ use nalgebra_glm;
 use crate::mesh::{ Mesh, mesh_vertices };
 use crate::shader::Shader;
 use crate::ui::{ ui, UIElement, UI };
-use crate::window::InputHandler;
+use crate::window::{ InputHandler, Window };
 use crate::rglfw;
 use crate::camera::{ Camera, camera };
 
@@ -14,7 +14,8 @@ pub struct Scene {
     ui: UI,
     camera: Camera,
     update_fn: fn(&mut Scene, &InputHandler, f32),
-    build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>)
+    build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>),
+    cursor_locked: bool
 }
 
 impl Scene {
@@ -26,16 +27,23 @@ impl Scene {
         }
 
         self.ui.draw(ui_shader, text_shader);
+
+        if !self.cursor_locked { self.ui.draw_string_bg("CURSOR UNLOCKED", 2.0, &nalgebra_glm::vec3(0.0, 0.0, 0.0), &nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), &nalgebra_glm::vec4(0.0, 0.0, 1.0, 1.0), ui_shader, text_shader) }
     }
     pub fn add_obj(&mut self, obj: Mesh) {
         self.objects.push(obj);
     }
-    pub fn update(&mut self, input_handler: &InputHandler, delta_time: f32) {
+    pub fn update(&mut self, window: &mut Window, input_handler: &InputHandler, delta_time: f32) {
+        self.cursor_locked = window.get_cursor_locked();
+
         if input_handler.get_key_down(rglfw::KEY_R) {
             self.reload();
         }
 
-        self.camera.update(input_handler, delta_time);
+        if self.cursor_locked { self.camera.update(input_handler, delta_time); }
+
+        if input_handler.get_key_down(rglfw::KEY_GRAVE_ACCENT) && self.cursor_locked { window.set_cursor_locked(false); }
+        else if input_handler.get_key_down(rglfw::KEY_GRAVE_ACCENT) { window.set_cursor_locked(true); }
 
         (self.update_fn)(self, input_handler, delta_time);
     }
@@ -51,7 +59,7 @@ impl Scene {
 pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3) -> Scene {
     let (objs, elements ) = (build)();
     Scene { objects: objs, ui: ui(elements, "wave-standard", 12.0), 
-        camera: camera(pos), update_fn: update, build_fn: build }
+        camera: camera(pos), update_fn: update, build_fn: build, cursor_locked: false }
 }
 
 pub fn load_level_from_file(path: &str) -> Vec<Mesh> {

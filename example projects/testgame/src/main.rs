@@ -12,6 +12,7 @@ const DISP_HEIGHT: i32 = 216;
 
 fn main() {
     let mut engine = engine::engine("OpenGL", SCR_WIDTH, SCR_HEIGHT, DISP_WIDTH, DISP_HEIGHT);
+    engine.set_cursor_locked(true);
 
     engine.new_scene(scene1::build, scene1::update, glm::vec3(5.0, 2.5, 0.0));
     engine.set_active_scene(0);

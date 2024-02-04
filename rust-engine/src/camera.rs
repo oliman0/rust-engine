@@ -29,10 +29,8 @@ impl Camera {
             self.position += nalgebra_glm::normalize(&nalgebra_glm::cross(&self.front, &self.up)) * (self.speed * delta_time);
         }
 
-        if input_handler.is_mouse_input() {
-            self.yaw += input_handler.get_mouse_xoffset() * delta_time;
-            self.pitch += input_handler.get_mouse_yoffset() * delta_time;
-        }
+        self.yaw += input_handler.get_mouse_offset().x * delta_time;
+        self.pitch += input_handler.get_mouse_offset().y * delta_time;
 
         if self.pitch > 89.0 { self.pitch =  89.0 }
         if self.pitch < -89.0 { self.pitch = -89.0 }
