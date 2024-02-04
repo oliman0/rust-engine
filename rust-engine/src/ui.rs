@@ -39,10 +39,11 @@ pub fn ui_sprite_element_notex(colour: nalgebra_glm::Vec4, size: nalgebra_glm::V
 pub struct UITextElement {
     text: String,
     position: nalgebra_glm::Vec3,
-    colour: nalgebra_glm::Vec4
+    colour: nalgebra_glm::Vec4,
+    text_size: f32
 }
-pub fn ui_text_element(str: &str, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4) -> UITextElement {
-    UITextElement { text: str.to_string(), position: position, colour: colour }
+pub fn ui_text_element(str: &str, text_size: f32, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4) -> UITextElement {
+    UITextElement { text: str.to_string(), text_size: text_size, position: position, colour: colour }
 }
 
 struct Character {
@@ -87,7 +88,7 @@ impl UI {
         for element in &self.elements {
             match element {
                 UIElement::UISpriteElement(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, ui_shader)}
-                UIElement::UITextElement(el) => {self.draw_string(&el.text, &el.position, &el.colour, text_shader)}
+                UIElement::UITextElement(el) => {self.draw_string(&el.text, el.text_size, &el.position, &el.colour, text_shader)}
             }
         }
     }
@@ -126,7 +127,7 @@ impl UI {
         }
     }
 
-    pub fn draw_string(&self, str: &str, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
+    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
         let mut position = *pos;
 
         for char in str.chars() {
@@ -134,12 +135,12 @@ impl UI {
                 position.x += 3.0
             }
             else {
-                self.draw_character(&self.characters[char as usize], &position, colour, shader);
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour, shader);
                 position.x += self.characters[char as usize].width + 1.0;
             }
         }
     }
-    fn draw_character(&self, char: &Character, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
+    fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
         unsafe {
             shader.use_shader();
 
@@ -147,7 +148,7 @@ impl UI {
 
             let mut model: nalgebra_glm::Mat4 = nalgebra_glm::identity();
             model = nalgebra_glm::translate(&model, &position);
-            model = nalgebra_glm::scale(&model, &nalgebra_glm::vec3(char.width, self.char_height, 1.0));
+            model = nalgebra_glm::scale(&model, &nalgebra_glm::vec3(char.width * text_size, self.char_height * text_size, 1.0));
             shader.set_uniform_mat4("model", &model);
             shader.set_uniform_vec4("colour", &colour);
             shader.set_uniform_bool("usingTexture", true);

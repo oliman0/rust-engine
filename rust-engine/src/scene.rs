@@ -14,7 +14,6 @@ pub struct Scene {
     ui: UI,
     camera: Camera,
     update_fn: fn(&mut Scene, &InputHandler, f32),
-    ui_update_fn: fn(&mut Scene, &InputHandler),
     build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>)
 }
 
@@ -39,7 +38,6 @@ impl Scene {
         self.camera.update(input_handler, delta_time);
 
         (self.update_fn)(self, input_handler, delta_time);
-        (self.ui_update_fn)(self, input_handler);
     }
     
     fn reload(&mut self) { 
@@ -50,10 +48,10 @@ impl Scene {
         self.ui = ui(els, "wave-standard", 12.0);
     }
 }
-pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), ui_update: fn(&mut Scene, &InputHandler), pos: nalgebra_glm::Vec3) -> Scene {
+pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3) -> Scene {
     let (objs, elements ) = (build)();
     Scene { objects: objs, ui: ui(elements, "wave-standard", 12.0), 
-        camera: camera(pos), update_fn: update, ui_update_fn: ui_update, build_fn: build }
+        camera: camera(pos), update_fn: update, build_fn: build }
 }
 
 pub fn load_level_from_file(path: &str) -> Vec<Mesh> {

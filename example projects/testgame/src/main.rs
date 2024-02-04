@@ -13,7 +13,7 @@ const DISP_HEIGHT: i32 = 216;
 fn main() {
     let mut engine = engine::engine("OpenGL", SCR_WIDTH, SCR_HEIGHT, DISP_WIDTH, DISP_HEIGHT);
 
-    engine.new_scene(scene1::build, scene1::update, scene1::ui_update, glm::vec3(0.0, 2.5, 0.0));
+    engine.new_scene(scene1::build, scene1::update, glm::vec3(5.0, 2.5, 0.0));
     engine.set_active_scene(0);
 
     let projection = glm::perspective(110.0 / TO_RADIANS, SCR_WIDTH as f32/SCR_HEIGHT as f32, 0.1, 150.0);

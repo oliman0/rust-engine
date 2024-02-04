@@ -35,8 +35,8 @@ impl<'a> Engine<'a> {
 
         if self.active_scene >= 0 && self.active_scene < self.scenes.len() as i32 { self.scenes[self.active_scene as usize].update(&self.input_handler, self.delta_time) }     
     }
-    pub fn new_scene(&mut self, build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), ui_update: fn(&mut Scene, &InputHandler), pos: nalgebra_glm::Vec3) {
-        self.scenes.push(scene(build, update, ui_update, pos))
+    pub fn new_scene(&mut self, build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3) {
+        self.scenes.push(scene(build, update, pos))
     }
     pub fn set_active_scene(&mut self, scene: i32) { self.active_scene = scene }
     pub fn should_close(&self) -> bool { self.window.should_close() }
