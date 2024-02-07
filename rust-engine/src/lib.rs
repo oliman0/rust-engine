@@ -20,10 +20,32 @@ pub mod engine {
 
 pub mod scene_builder {
     pub use crate::mesh::Mesh as Obj;
-    pub use crate::ui::{ UIElement, ui_sprite_element, ui_sprite_element_notex, ui_text_element };
+    pub use crate::ui::{ UI, UIElement, UIDisplay, ui_sprite, ui_sprite_notex, ui_text, ui_text_bg, ui_text_bg_sprite, ui_button };
     pub use crate::scene::{ Scene, load_level_from_file };
     pub use crate::window::InputHandler;
     pub use crate::rglfw::keys as input;
 }
 
 pub use nalgebra_glm as glm;
+
+/*
+
+███╗░░██╗░█████╗░████████╗███████╗░██████╗
+████╗░██║██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+██╔██╗██║██║░░██║░░░██║░░░█████╗░░╚█████╗░
+██║╚████║██║░░██║░░░██║░░░██╔══╝░░░╚═══██╗
+██║░╚███║╚█████╔╝░░░██║░░░███████╗██████╔╝
+╚═╝░░╚══╝░╚════╝░░░░╚═╝░░░╚══════╝╚═════╝░
+
+Any code commented under DEV TOOLS or DEBUG to be removed later
+
+
+▀█▀ █▀█ █▀▄ █▀█ ▀
+░█░ █▄█ █▄▀ █▄█ ▄
+
+    - Level System Redesign
+        - Player obj
+        - Player Input independant of engine
+
+</𝒏𝒐𝒕𝒆𝒔> 
+*/

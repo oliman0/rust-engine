@@ -54,7 +54,6 @@ impl Mesh {
     pub fn set_pos(&mut self, vec: nalgebra_glm::Vec3) { self.position = vec; }
 }
 fn create(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, sizez: f32, texture: u32, colour: nalgebra_glm::Vec4, using_texture: bool) -> Mesh { 
-    //index data
     let vertices: [f32; 180] = [
         0.0,		 0.0,		-sizez,  0.0, 0.0,
         sizex,	 0.0,		-sizez,  1.0, 0.0,

@@ -2,16 +2,32 @@ use std::ffi::c_void;
 
 use gl::DEPTH_TEST;
 
+use crate::rglfw;
+use crate::scene::Scene;
 use crate::shader::Shader;
 use crate::texture::{ generate_texture_and_size_path, generate_texture };
 use crate::vao::create_vao_and_ibo;
+use crate::window::InputHandler;
 
 pub enum UIElement {
-    UISpriteElement(UISpriteElement),
-    UITextElement(UITextElement)
+    UIButton(UIButtonElement),
+    UIDisplay(UIDisplay)
 }
 
-pub struct UISpriteElement {
+pub enum UIDisplay {
+    UISprite(UISprite),
+    UIText(UIText)
+}
+
+pub struct UIButtonElement {
+    display: UIDisplay,
+    on_click_fn: fn(&Scene, &UI)
+}
+pub fn ui_button(display: UIDisplay, on_click: fn(&Scene, &UI)) -> UIElement {
+    UIElement::UIButton(UIButtonElement { display: display, on_click_fn: on_click })
+}
+
+pub struct UISprite {
     texture_id: u32,
     colour: nalgebra_glm::Vec4,
     position: nalgebra_glm::Vec3,
@@ -19,31 +35,40 @@ pub struct UISpriteElement {
     using_texture: bool
 }
 
-impl Drop for UISpriteElement {
+impl Drop for UISprite {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteTextures(1, &self.texture_id);
         }
     }
 }
-pub fn ui_sprite_element(fname: &str, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UISpriteElement {
+pub fn ui_sprite(fname: &str, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UIDisplay {
     let tex_id = generate_texture(fname);
-    UISpriteElement { texture_id: tex_id, size: size,
-            position: position, colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), using_texture: true }
+    UIDisplay::UISprite(UISprite { texture_id: tex_id, size: size,
+            position: position, colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), using_texture: true })
 }
-pub fn ui_sprite_element_notex(colour: nalgebra_glm::Vec4, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UISpriteElement {
-    UISpriteElement { texture_id: 0, size: size,
-            position: position, colour: colour, using_texture: false }
+pub fn ui_sprite_notex(colour: nalgebra_glm::Vec4, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UIDisplay {
+    UIDisplay::UISprite(UISprite { texture_id: 0, size: size,
+            position: position, colour: colour, using_texture: false })
 }
 
-pub struct UITextElement {
+pub struct UIText {
     text: String,
     position: nalgebra_glm::Vec3,
     colour: nalgebra_glm::Vec4,
-    text_size: f32
+    text_size: f32,
+    padding: nalgebra_glm::Vec2,
+    bg_colour: nalgebra_glm::Vec4,
+    bg_texture_id: u32,
 }
-pub fn ui_text_element(str: &str, text_size: f32, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4) -> UITextElement {
-    UITextElement { text: str.to_string(), text_size: text_size, position: position, colour: colour }
+pub fn ui_text(str: &str, text_size: f32, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4) -> UIDisplay {
+    UIDisplay::UIText(UIText { text: str.to_string(), text_size: text_size, position: position, colour: colour, padding: nalgebra_glm::vec2(0.0, 0.0), bg_colour: nalgebra_glm::vec4(0.0, 0.0, 0.0, 0.0), bg_texture_id: 0 })
+}
+pub fn ui_text_bg(str: &str, text_size: f32, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4, padding: nalgebra_glm::Vec2, bg_colour: nalgebra_glm::Vec4) -> UIDisplay {
+    UIDisplay::UIText(UIText { text: str.to_string(), text_size: text_size, position: position, colour: colour, padding: padding, bg_colour: bg_colour, bg_texture_id: 0 })
+}
+pub fn ui_text_bg_sprite(str: &str, text_size: f32, position: nalgebra_glm::Vec3, colour: nalgebra_glm::Vec4, padding: nalgebra_glm::Vec2, bg_texture_id: u32, bg_colour: nalgebra_glm::Vec4) -> UIDisplay {
+    UIDisplay::UIText(UIText { text: str.to_string(), text_size: text_size, position: position, colour: colour, padding: padding, bg_colour: bg_colour, bg_texture_id: bg_texture_id })
 }
 
 struct Character {
@@ -87,12 +112,82 @@ impl UI {
     pub fn draw(&self, ui_shader: &Shader, text_shader: &Shader) {
         for element in &self.elements {
             match element {
-                UIElement::UISpriteElement(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, ui_shader)}
-                UIElement::UITextElement(el) => {self.draw_string(&el.text, el.text_size, &el.position, &el.colour, text_shader)}
+                UIElement::UIButton(element) => { self.draw_display(&element.display, ui_shader, text_shader) }
+                UIElement::UIDisplay(element) => { self.draw_display(&element, ui_shader, text_shader) }
             }
         }
     }
 
+    pub fn update(&self, scene: &Scene, input_handler: &InputHandler) {
+        let mouse_pos = input_handler.get_mouse_position();
+
+        for el in &self.elements {
+            match el {
+                UIElement::UIButton(el) => { match &el.display {
+                    UIDisplay::UISprite(disp) => {
+                        if mouse_pos.x > disp.position.x && mouse_pos.x < (disp.position.x + disp.size.x) &&
+                           mouse_pos.y > disp.position.y && mouse_pos.y < (disp.position.y + disp.size.y) {
+                            if input_handler.get_mouse_button_down(rglfw::MOUSE_BUTTON_1) {
+                                (el.on_click_fn)(scene, self);
+                            }
+                        }
+                    }
+                    UIDisplay::UIText(disp) => {
+                        if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.get_string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
+                           mouse_pos.y > (disp.position.y + ((disp.padding.y * disp.text_size) + (3.0 * disp.text_size))) && mouse_pos.y < (disp.position.y + (self.char_height * disp.text_size) + ((disp.padding.y + (3.0 * disp.text_size)) * disp.text_size)) {
+                            if input_handler.get_mouse_button_down(rglfw::MOUSE_BUTTON_1) {
+                                (el.on_click_fn)(scene, self);
+                            }
+                        }
+                    }
+                } }
+                _ => ()
+            }
+        }
+    }
+
+    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
+            let mut position = *pos;
+
+            for char in str.chars() {
+                if char as i32 == 32 {
+                    position.x += 3.0 * text_size
+                }
+                else {
+                    self.draw_character(&self.characters[char as usize], text_size, &position, colour, shader);
+                    position.x += (self.characters[char as usize].width * text_size) + text_size;
+                }
+            }
+        }
+    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32, shader: &Shader, text_shader: &Shader) {
+        let mut position = *pos;
+        let padding = pad * text_size;
+
+        let str_size = self.get_string_size(str, text_size);
+        self.draw_sprite(bg_texture_id, &nalgebra_glm::vec3(position.x - padding.x, position.y - padding.y, 0.0),
+                        &nalgebra_glm::vec2(str_size.x + (padding.x * 2.0), str_size.y + (3.0 * text_size) + (padding.y * 2.0)),
+                        bg_colour, false, shader);
+
+        for char in str.chars() {
+            if char as i32 == 32 {
+                position.x += 3.0 * text_size
+            }
+            else {
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour, text_shader);
+                position.x += (self.characters[char as usize].width * text_size) + text_size;
+            }
+        }
+    }
+
+    fn draw_display(&self, display: &UIDisplay, ui_shader: &Shader, text_shader: &Shader) {
+        match display {
+            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, ui_shader)}
+            UIDisplay::UIText(el) => {
+                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, &el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id, ui_shader, text_shader) }
+                else { self.draw_string(&el.text, el.text_size, &el.position, &el.colour, text_shader) }
+            }
+        }
+    }
     fn draw_sprite(&self, texture_id: u32, position: &nalgebra_glm::Vec3, size: &nalgebra_glm::Vec2, colour: &nalgebra_glm::Vec4, using_texture: bool, shader: &Shader) {
         unsafe {
             shader.use_shader();
@@ -126,50 +221,6 @@ impl UI {
             gl::Enable(DEPTH_TEST);
         }
     }
-
-    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
-        let mut position = *pos;
-
-        for char in str.chars() {
-            if char as i32 == 32 {
-                position.x += 3.0 * text_size
-            }
-            else {
-                self.draw_character(&self.characters[char as usize], text_size, &position, colour, shader);
-                position.x += (self.characters[char as usize].width * text_size) + text_size;
-            }
-        }
-    }
-    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, shader: &Shader, text_shader: &Shader) {
-        let mut position = *pos;
-
-        let str_size = self.get_string_size(str, text_size);
-        self.draw_sprite(0, &position, &nalgebra_glm::vec2(str_size.x, str_size.y + (2.0 * text_size)), bg_colour, false, shader);
-
-        for char in str.chars() {
-            if char as i32 == 32 {
-                position.x += 3.0 * text_size
-            }
-            else {
-                self.draw_character(&self.characters[char as usize], text_size, &position, colour, text_shader);
-                position.x += (self.characters[char as usize].width * text_size) + text_size;
-            }
-        }
-    }
-    pub fn get_string_size(&self, str: &str, text_size: f32) -> nalgebra_glm::Vec2 {
-        let mut size = nalgebra_glm::vec2(0.0, self.char_height * text_size);
-
-        for char in str.chars() {
-            if char as i32 == 32 {
-                size.x += 3.0 * text_size
-            }
-            else {
-                size.x += (self.characters[char as usize].width * text_size) + text_size;
-            }
-        }
-
-        size
-    }
     fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
         unsafe {
             shader.use_shader();
@@ -199,6 +250,23 @@ impl UI {
             gl::Enable(DEPTH_TEST);
         }
     }
+
+    pub fn get_string_size(&self, str: &str, text_size: f32) -> nalgebra_glm::Vec2 {
+        let mut size = nalgebra_glm::vec2(0.0, self.char_height * text_size);
+
+        for char in str.chars() {
+            if char as i32 == 32 {
+                size.x += 3.0 * text_size
+            }
+            else {
+                size.x += (self.characters[char as usize].width * text_size) + text_size;
+            }
+        }
+
+        size.x -= text_size;
+
+        size
+    }
 }
 pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32) -> UI {
     let mut chars: Vec<Character> = Vec::new();
@@ -214,7 +282,6 @@ pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32) -> UI {
         2, 3, 0
     ];
 
-    //vertex data
     let vertices: [f32; 20] = [
         0.0, 0.0, 0.0,       0.0, 1.0,
          1.0, 0.0, 0.0,    1.0, 1.0,
