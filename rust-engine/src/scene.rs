@@ -13,6 +13,7 @@ pub struct Scene {
     objects: Vec<Mesh>,
     ui: UI,
     camera: Camera,
+    clear_colour: nalgebra_glm::Vec4,
     update_fn: fn(&mut Scene, &InputHandler, f32),
     build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>),
     cursor_locked: bool,
@@ -60,11 +61,13 @@ impl Scene {
         self.objects = objs;
         self.ui = ui(els, "wave-standard", 12.0);
     }
+    
+    pub fn get_clear_colour(&self) -> &nalgebra_glm::Vec4 { &self.clear_colour }
 }
-pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3) -> Scene {
+pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3, col: nalgebra_glm::Vec4) -> Scene {
     let (objs, elements ) = (build)();
     Scene { objects: objs, ui: ui(elements, "wave-standard", 12.0), 
-        camera: camera(pos), update_fn: update, build_fn: build, cursor_locked: false, fps: 0 }
+        camera: camera(pos), clear_colour: col, update_fn: update, build_fn: build, cursor_locked: false, fps: 0 }
 }
 
 pub fn load_level_from_file(path: &str) -> Vec<Mesh> {

@@ -1,19 +1,19 @@
-use rustengine::scene_builder as engine;
+use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{Scene, load_level_from_file}, mesh::Mesh as Obj, window::InputHandler};
 use rustengine::glm;
 
-pub fn build() -> (Vec<engine::Obj>, Vec<engine::UIElement>) {
-    let mut uiels: Vec<engine::UIElement> = Vec::new();
+pub fn build() -> (Vec<Obj>, Vec<UIElement>) {
+    let mut uiels: Vec<UIElement> = Vec::new();
 
-    uiels.push(engine::ui_button(engine::ui_text_bg("Test Button", 1.0, glm::vec3(10.0, 100.0, 0.0), glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec2(1.0, -2.0), glm::vec4(0.0, 0.0, 0.0, 0.5)), test_button));
-    //uiels.push(engine::ui_button(engine::ui_sprite("blue_grad", glm::vec2(10.0, 10.0), glm::vec3(10.0, 130.0, 0.0)), test_button));
+    uiels.push(ui_button(ui_text_bg("Test Button", 1.0, glm::vec3(10.0, 100.0, 0.0), glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec2(1.0, -2.0), glm::vec4(0.0, 0.0, 0.0, 0.5)), test_button));
+    //uiels.push(ui_button(ui_sprite("blue_grad", glm::vec2(10.0, 10.0), glm::vec3(10.0, 130.0, 0.0)), test_button));
     
-    (engine::load_level_from_file("level"), uiels)
+    (load_level_from_file("level"), uiels)
 }
 
-pub fn update(_scene: &mut engine::Scene, _input_handler: &engine::InputHandler, _delta_time: f32) {
+pub fn update(_scene: &mut Scene, _input_handler: &InputHandler, _delta_time: f32) {
     
 }
 
-fn test_button(_scene: &engine::Scene, _ui: &engine::UI) {
+fn test_button(_scene: &Scene, _ui: &UI) {
     println!("clicked");
 }
