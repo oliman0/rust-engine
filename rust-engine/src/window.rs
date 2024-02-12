@@ -15,6 +15,7 @@ pub struct Window {
     frame_size: nalgebra_glm::Vec2,
     viewport_size: nalgebra_glm::Vec2,
     // INPUT
+    cursor_locked: bool,
     keys: [bool; 1024],
     hold_keys: [bool; 1024],
     mouse_buttons: [bool; 12],
@@ -45,13 +46,31 @@ impl Window {
         }
     }
     pub fn should_close(&self) -> bool {unsafe { if glfwWindowShouldClose(self.window) == 1 {true} else {false}}}
-    pub fn poll_events(&mut self) { self.mouse_offset = nalgebra_glm::vec2(0.0, 0.0); self.keys = [false; 1024]; self.mouse_buttons = [false; 12]; unsafe {glfwPollEvents();} }
-    pub fn get_cursor_locked(&self) -> bool { unsafe { match glfwGetInputMode(self.window, CURSOR) { CURSOR_NORMAL => false, _ => true } } }
+    pub fn poll_events(&mut self) {
+        self.mouse_offset = nalgebra_glm::vec2(0.0, 0.0); self.keys = [false; 1024]; self.mouse_buttons = [false; 12];
+        unsafe {glfwPollEvents();}
+        
+        // Handle Mouse Input
+        let (mut xpos, mut ypos)= (0.0, 0.0);
+        unsafe { glfwGetCursorPos(self.window, &mut xpos, &mut ypos) }
+
+        let (center_x, center_y): (f32, f32) = (self.window_size.x as f32 / 2., self.window_size.y as f32 / 2.);
+
+        self.mouse_offset = nalgebra_glm::vec2(xpos as f32 - center_x, center_y - ypos as f32);
+        self.mouse_offset *= self.sensitivity;
+
+        self.mouse_pos = nalgebra_glm::vec2(xpos as f32, ypos as f32);
+
+        if self.cursor_locked { unsafe { glfwSetCursorPos(self.window, self.window_size.x as f64 / 2., self.window_size.y as f64 / 2.) } }
+    }
+    pub fn get_cursor_locked(&self) -> bool { self.cursor_locked }
     pub fn set_cursor_locked(&mut self, locked: bool) {
         unsafe {
-            if locked { glfwSetInputMode(self.window, CURSOR, CURSOR_DISABLED); }
+            if locked { glfwSetInputMode(self.window, CURSOR, CURSOR_HIDDEN); }
             else { glfwSetInputMode(self.window, CURSOR, CURSOR_NORMAL); }
         }
+
+        self.cursor_locked = locked;
     }
     pub fn get_deltatime(&mut self) -> f32 {
         let current_time = unsafe { glfwGetTime() as f32 };
@@ -61,7 +80,6 @@ impl Window {
         delta_time
     }
     pub fn get_fps(&self) -> i32 { self.fps }
-    //pub fn get_screen_size(&self) -> nalgebra_glm::Vec2 { nalgebra_glm::vec2(self.viewport_width as f32, self.viewport_height as f32) }
 
     pub fn get_key(&self, key: i32) -> bool { self.hold_keys[key as usize] }
     pub fn get_key_down(&self, key: i32) -> bool { self.keys[key as usize] }
@@ -107,6 +125,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
             last_time: 0.0,
             count_frames: 0, last_frame_time: 0.0, fps: 0,
             window_size: nalgebra_glm::vec2(scr_width as f32, scr_height as f32), viewport_size: nalgebra_glm::vec2(viewport_w as f32, viewport_h as f32), frame_size: nalgebra_glm::vec2(fx as f32, fy as f32),
+            cursor_locked: false,
             keys: [false; 1024],
             hold_keys: [false; 1024],
             mouse_buttons: [false; 12],
@@ -126,7 +145,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     gl::Viewport(0, 0, viewport_w, viewport_h);
 
     glfwSetKeyCallback(glfwwindow, std::mem::transmute(handle_keys as *const ()));
-    glfwSetCursorPosCallback(glfwwindow, std::mem::transmute(handle_mouse as *const ()));
+    //glfwSetCursorPosCallback(glfwwindow, std::mem::transmute(handle_mouse as *const ()));
     glfwSetMouseButtonCallback(glfwwindow, std::mem::transmute(handle_mouse_buttons as *const ()));
 
     glfwSetWindowUserPointer(glfwwindow, std::mem::transmute(window));
@@ -139,7 +158,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
 
     glfwSwapInterval(1);
     
-    if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 10.0 }
+    //if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 10.0 }
 
     &mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)
 }
@@ -166,19 +185,6 @@ fn handle_keys(window: *mut GLFWwindow, key: i32, _code: i32, action: i32, _mode
 		    window_user.hold_keys[key as usize] = false;
 		}
 	}
-}
-
-fn handle_mouse(window: &mut GLFWwindow, xpos_in: f64, ypos_in: f64) {
-    let window_user: &mut Window = unsafe { &mut *(glfwGetWindowUserPointer(window) as *mut Window) };
-    
-    let xpos = xpos_in as f32;
-    let ypos = ypos_in as f32;
-
-    window_user.mouse_offset.x = xpos - window_user.mouse_pos.x;
-    window_user.mouse_offset.y = window_user.mouse_pos.y - ypos;
-    window_user.mouse_pos = nalgebra_glm::vec2(xpos, ypos);
-
-    window_user.mouse_offset *= window_user.sensitivity;
 }
 
 fn handle_mouse_buttons(window: &mut GLFWwindow, button: i32, action: i32, _mods: i32) {
