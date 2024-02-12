@@ -2,12 +2,13 @@ use std::ffi::c_void;
 
 use gl::DEPTH_TEST;
 
-use crate::rglfw;
+use glfw::ffi as glfw;
+
 use crate::scene::Scene;
 use crate::shader::Shader;
 use crate::texture::{ generate_texture_and_size_path, generate_texture };
 use crate::vao::create_vao_and_ibo;
-use crate::window::InputHandler;
+use crate::window::Window;
 
 pub enum UIElement {
     UIButton(UIButtonElement),
@@ -118,8 +119,8 @@ impl UI {
         }
     }
 
-    pub fn update(&self, scene: &Scene, input_handler: &InputHandler) {
-        let mouse_pos = input_handler.get_mouse_position();
+    pub fn update(&self, scene: &Scene, window: &Window) {
+        let mouse_pos = window.get_mouse_position();
 
         for el in &self.elements {
             match el {
@@ -127,7 +128,7 @@ impl UI {
                     UIDisplay::UISprite(disp) => {
                         if mouse_pos.x > disp.position.x && mouse_pos.x < (disp.position.x + disp.size.x) &&
                            mouse_pos.y > disp.position.y && mouse_pos.y < (disp.position.y + disp.size.y) {
-                            if input_handler.get_mouse_button_down(rglfw::MOUSE_BUTTON_1) {
+                            if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
                             }
                         }
@@ -135,7 +136,7 @@ impl UI {
                     UIDisplay::UIText(disp) => {
                         if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.get_string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
                            mouse_pos.y > (disp.position.y + ((disp.padding.y * disp.text_size) + (3.0 * disp.text_size))) && mouse_pos.y < (disp.position.y + (self.char_height * disp.text_size) + ((disp.padding.y + (3.0 * disp.text_size)) * disp.text_size)) {
-                            if input_handler.get_mouse_button_down(rglfw::MOUSE_BUTTON_1) {
+                            if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
                             }
                         }

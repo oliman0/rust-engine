@@ -1,9 +1,8 @@
 mod scene1;
 mod leveleditor;
 
-use rustengine::{engine_manager::engine, shader::shader};
+use rustengine::{engine_manager::engine, shader::shader, input};
 use rustengine::glm;
-use rustengine::rglfw::keys as input;
 
 const TO_RADIANS: f32 = 180.0/3.1415926;
 
@@ -38,8 +37,8 @@ fn main() {
     text_shader.set_uniform_mat4("projection", &ui_projection);
 
     while !engine.should_close() {
-        if engine.input_handler().get_key_down(input::KEY_P) && engine.get_active_scene() != 1 { engine.set_active_scene(1); engine.set_cursor_locked(false); }
-        else if engine.input_handler().get_key_down(input::KEY_P) { engine.set_active_scene(0); engine.set_cursor_locked(true); }
+        if engine.window.get_key_down(input::KEY_P) && engine.get_active_scene() != 1 { engine.set_active_scene(1); engine.set_cursor_locked(false); }
+        else if engine.window.get_key_down(input::KEY_P) { engine.set_active_scene(0); engine.set_cursor_locked(true); }
 
         engine.update();
         engine.draw(&s_shader, &ui_shader, &text_shader);

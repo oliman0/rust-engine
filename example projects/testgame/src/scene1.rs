@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{Scene, load_level_from_file}, mesh::Mesh as Obj, window::InputHandler};
+use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{Scene, load_level_from_file}, mesh::Mesh as Obj, window::Window};
 use rustengine::glm;
 
 pub fn build() -> (Vec<Obj>, Vec<UIElement>) {
@@ -10,7 +10,7 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>) {
     (load_level_from_file("level"), uiels)
 }
 
-pub fn update(_scene: &mut Scene, _input_handler: &InputHandler, _delta_time: f32) {
+pub fn update(_scene: &mut Scene, _window: &Window, _delta_time: f32) {
     
 }
 

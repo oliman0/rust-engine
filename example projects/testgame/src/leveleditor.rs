@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_sprite, UIElement, UI}, scene::Scene, mesh::Mesh as Obj, window::InputHandler};
+use rustengine::{ui::{ui_button, ui_sprite, UIElement, UI}, scene::Scene, mesh::Mesh as Obj, window::Window};
 use rustengine::glm;
 
 pub fn build() -> (Vec<Obj>, Vec<UIElement>) {
@@ -9,7 +9,7 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>) {
     (Vec::new(), uiels)
 }
 
-pub fn update(_scene: &mut Scene, _input_handler: &InputHandler, _delta_time: f32) {
+pub fn update(_scene: &mut Scene, _window: &Window, _delta_time: f32) {
     
 }
 

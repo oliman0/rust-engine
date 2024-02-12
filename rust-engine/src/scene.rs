@@ -2,11 +2,12 @@ use std::fs::read_to_string;
 
 use nalgebra_glm;
 
+use glfw::ffi as glfw;
+
 use crate::mesh::{ Mesh, mesh_vertices };
 use crate::shader::Shader;
 use crate::ui::{ ui, UIElement, UI };
-use crate::window::{ InputHandler, Window };
-use crate::rglfw;
+use crate::window::Window;
 use crate::camera::{ Camera, camera };
 
 pub struct Scene {
@@ -14,7 +15,7 @@ pub struct Scene {
     ui: UI,
     camera: Camera,
     clear_colour: nalgebra_glm::Vec4,
-    update_fn: fn(&mut Scene, &InputHandler, f32),
+    update_fn: fn(&mut Scene, &Window, f32),
     build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>),
     cursor_locked: bool,
     fps: i32
@@ -36,22 +37,22 @@ impl Scene {
     pub fn add_obj(&mut self, obj: Mesh) {
         self.objects.push(obj);
     }
-    pub fn update(&mut self, window: &mut Window, input_handler: &InputHandler, delta_time: f32) {
+    pub fn update(&mut self, window: &mut Window, delta_time: f32) {
         self.cursor_locked = window.get_cursor_locked();
         self.fps = window.get_fps();
 
-        self.ui.update(self, input_handler);
+        self.ui.update(self, window);
 
-        if input_handler.get_key_down(rglfw::KEY_R) {
+        if window.get_key_down(glfw::KEY_R) {
             self.reload();
         }
 
-        if self.cursor_locked { self.camera.update(input_handler, delta_time); }
+        if self.cursor_locked { self.camera.update(window, delta_time); }
 
-        if input_handler.get_key_down(rglfw::KEY_GRAVE_ACCENT) && self.cursor_locked { window.set_cursor_locked(false); }
-        else if input_handler.get_key_down(rglfw::KEY_GRAVE_ACCENT) { window.set_cursor_locked(true); }
+        if window.get_key_down(glfw::KEY_GRAVE_ACCENT) && self.cursor_locked { window.set_cursor_locked(false); }
+        else if window.get_key_down(glfw::KEY_GRAVE_ACCENT) { window.set_cursor_locked(true); }
 
-        (self.update_fn)(self, input_handler, delta_time);
+        (self.update_fn)(self, window, delta_time);
     }
     
     fn reload(&mut self) { 
@@ -64,7 +65,7 @@ impl Scene {
     
     pub fn get_clear_colour(&self) -> &nalgebra_glm::Vec4 { &self.clear_colour }
 }
-pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &InputHandler, f32), pos: nalgebra_glm::Vec3, col: nalgebra_glm::Vec4) -> Scene {
+pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &Window, f32), pos: nalgebra_glm::Vec3, col: nalgebra_glm::Vec4) -> Scene {
     let (objs, elements ) = (build)();
     Scene { objects: objs, ui: ui(elements, "wave-standard", 12.0), 
         camera: camera(pos), clear_colour: col, update_fn: update, build_fn: build, cursor_locked: false, fps: 0 }

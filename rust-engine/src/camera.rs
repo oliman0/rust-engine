@@ -1,6 +1,7 @@
 use nalgebra_glm;
-use crate::rglfw;
-use crate::window::InputHandler;
+use glfw::ffi as glfw;
+
+use crate::window::Window;
 
 pub const TO_RADIANS: f32 = 180.0/3.1415926;
 
@@ -15,22 +16,22 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn update(&mut self, input_handler: &InputHandler, delta_time: f32) {
-        if input_handler.get_key(rglfw::KEY_W) {
+    pub fn update(&mut self, window: &Window, delta_time: f32) {
+        if window.get_key(glfw::KEY_W) {
             self.position += (self.speed * delta_time) * self.front;
         }   
-        if input_handler.get_key(rglfw::KEY_S) {
+        if window.get_key(glfw::KEY_S) {
             self.position -= (self.speed * delta_time) * self.front;
         }
-        if input_handler.get_key(rglfw::KEY_A) {
+        if window.get_key(glfw::KEY_A) {
             self.position -= nalgebra_glm::normalize(&nalgebra_glm::cross(&self.front, &self.up)) * (self.speed * delta_time);
         }
-        if input_handler.get_key(rglfw::KEY_D) {
+        if window.get_key(glfw::KEY_D) {
             self.position += nalgebra_glm::normalize(&nalgebra_glm::cross(&self.front, &self.up)) * (self.speed * delta_time);
         }
 
-        self.yaw += input_handler.get_mouse_offset().x * delta_time;
-        self.pitch += input_handler.get_mouse_offset().y * delta_time;
+        self.yaw += window.get_mouse_offset().x * delta_time;
+        self.pitch += window.get_mouse_offset().y * delta_time;
 
         if self.pitch > 89.0 { self.pitch =  89.0 }
         if self.pitch < -89.0 { self.pitch = -89.0 }
