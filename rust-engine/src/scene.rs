@@ -32,7 +32,7 @@ impl Scene {
         self.ui.draw(ui_shader, text_shader);
         
         // DEV TOOL
-        if !self.cursor_locked { self.ui.draw_string_bg("CURSOR UNLOCKED", 2.0, &nalgebra_glm::vec3(0.0, 0.0, 0.0), &nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), &nalgebra_glm::vec4(0.0, 0.0, 1.0, 1.0), &nalgebra_glm::vec2(1.0, 0.0), 0, ui_shader, text_shader) }
+        //if !self.cursor_locked { self.ui.draw_string_bg("CURSOR UNLOCKED", 2.0, &nalgebra_glm::vec3(0.0, 0.0, 0.0), &nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), &nalgebra_glm::vec4(0.0, 0.0, 1.0, 1.0), &nalgebra_glm::vec2(1.0, 0.0), 0, ui_shader, text_shader) }
     }
     pub fn add_obj(&mut self, obj: Mesh) {
         self.objects.push(obj);

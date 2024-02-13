@@ -119,7 +119,7 @@ impl UI {
         }
     }
 
-    pub fn update(&self, scene: &Scene, window: &Window) {
+    pub fn update(&self, scene: &Scene, window: &mut Window) {
         let mouse_pos = window.get_mouse_position();
 
         for el in &self.elements {
@@ -131,7 +131,9 @@ impl UI {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
                             }
+                                window.set_cursor_free(true);
                         }
+                        else { window.set_cursor_free(false); }
                     }
                     UIDisplay::UIText(disp) => {
                         if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.get_string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
@@ -139,7 +141,9 @@ impl UI {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
                             }
+                            window.set_cursor_free(true);
                         }
+                        else { window.set_cursor_free(false); }
                     }
                 } }
                 _ => ()

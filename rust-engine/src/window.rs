@@ -22,7 +22,10 @@ pub struct Window {
     hold_mouse_buttons: [bool; 12],
     mouse_pos: nalgebra_glm::Vec2,
     mouse_offset: nalgebra_glm::Vec2,
-    sensitivity: f32
+    scroll_wheel_x_offset: f32,
+    scroll_wheel_y_offset: f32,
+    sensitivity: f32,
+    cursor_free: bool
 }
 
 impl Drop for Window {
@@ -47,7 +50,7 @@ impl Window {
     }
     pub fn should_close(&self) -> bool {unsafe { if glfwWindowShouldClose(self.window) == 1 {true} else {false}}}
     pub fn poll_events(&mut self) {
-        self.mouse_offset = nalgebra_glm::vec2(0.0, 0.0); self.keys = [false; 1024]; self.mouse_buttons = [false; 12];
+        self.mouse_offset = nalgebra_glm::vec2(0.0, 0.0); self.keys = [false; 1024]; self.mouse_buttons = [false; 12]; (self.scroll_wheel_x_offset, self.scroll_wheel_y_offset) = (0.0, 0.0);
         unsafe {glfwPollEvents();}
         
         // Handle Mouse Input
@@ -61,7 +64,7 @@ impl Window {
 
         self.mouse_pos = nalgebra_glm::vec2(xpos as f32, ypos as f32);
 
-        if self.cursor_locked { unsafe { glfwSetCursorPos(self.window, self.window_size.x as f64 / 2., self.window_size.y as f64 / 2.) } }
+        if self.cursor_locked { unsafe { glfwSetCursorPos(self.window, self.window_size.x as f64 / 2.0, self.window_size.y as f64 / 2.0) } }
     }
     pub fn get_cursor_locked(&self) -> bool { self.cursor_locked }
     pub fn set_cursor_locked(&mut self, locked: bool) {
@@ -91,6 +94,11 @@ impl Window {
         ((self.window_size.y - self.mouse_pos.y) - (self.window_size.y - self.frame_size.y)) / (self.window_size.y / self.viewport_size.y))
     }
     pub fn get_mouse_offset(&self) -> nalgebra_glm::Vec2 { self.mouse_offset }
+    pub fn get_scroll_wheel_x_offset(&self) -> f32 { self.scroll_wheel_x_offset }
+    pub fn get_scroll_wheel_y_offset(&self) -> f32 { self.scroll_wheel_y_offset }
+
+    pub fn get_cursor_free(&self) -> bool { self.cursor_free }
+    pub fn set_cursor_free(&mut self, free: bool) { self.cursor_free = free }
 }
 pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, viewport_h: i32, sensitivity: f32) -> &mut Window {
     unsafe {
@@ -132,8 +140,10 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
             hold_mouse_buttons: [false; 12],
             mouse_pos: nalgebra_glm::vec2(0.0, 0.0),
             mouse_offset: nalgebra_glm::vec2(0.0, 0.0),
-            sensitivity: sensitivity
-
+            scroll_wheel_x_offset: 0.0,
+            scroll_wheel_y_offset: 0.0,
+            sensitivity: sensitivity,
+            cursor_free: true
     });
     
     glfwMakeContextCurrent(glfwwindow);
@@ -144,9 +154,9 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     
     gl::Viewport(0, 0, viewport_w, viewport_h);
 
-    glfwSetKeyCallback(glfwwindow, std::mem::transmute(handle_keys as *const ()));
-    //glfwSetCursorPosCallback(glfwwindow, std::mem::transmute(handle_mouse as *const ()));
-    glfwSetMouseButtonCallback(glfwwindow, std::mem::transmute(handle_mouse_buttons as *const ()));
+    glfwSetKeyCallback(glfwwindow, std::mem::transmute(key_callback as *const ()));
+    glfwSetMouseButtonCallback(glfwwindow, std::mem::transmute(mouse_button_callback as *const ()));
+    glfwSetScrollCallback(glfwwindow, std::mem::transmute(scroll_wheel_callback as *const ()));
 
     glfwSetWindowUserPointer(glfwwindow, std::mem::transmute(window));
 
@@ -164,7 +174,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
 }
 }
 
-fn handle_keys(window: *mut GLFWwindow, key: i32, _code: i32, action: i32, _mode: i32) {
+fn key_callback(window: *mut GLFWwindow, key: i32, _code: i32, action: i32, _mode: i32) {
     let window_user: &mut Window = unsafe { &mut *(glfwGetWindowUserPointer(window) as *mut Window) };
 
     if key == KEY_ESCAPE && action == PRESS {
@@ -187,7 +197,7 @@ fn handle_keys(window: *mut GLFWwindow, key: i32, _code: i32, action: i32, _mode
 	}
 }
 
-fn handle_mouse_buttons(window: &mut GLFWwindow, button: i32, action: i32, _mods: i32) {
+fn mouse_button_callback(window: *mut GLFWwindow, button: i32, action: i32, _mods: i32) {
     let window_user: &mut Window = unsafe { &mut *(glfwGetWindowUserPointer(window) as *mut Window) };
 
     if button >= 0 && button < 12
@@ -202,4 +212,11 @@ fn handle_mouse_buttons(window: &mut GLFWwindow, button: i32, action: i32, _mods
 		    window_user.hold_mouse_buttons[button as usize] = false;
 		}
 	}
+}
+
+fn scroll_wheel_callback(window: &mut GLFWwindow, xoff: f64, yoff: f64) {
+    let window_user: &mut Window = unsafe { &mut *(glfwGetWindowUserPointer(window) as *mut Window) };
+
+    window_user.scroll_wheel_x_offset = xoff as f32;
+    window_user.scroll_wheel_y_offset = yoff as f32;
 }
