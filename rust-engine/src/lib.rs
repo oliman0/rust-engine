@@ -5,6 +5,7 @@ pub mod shader;
 pub mod camera;
 pub mod mesh;
 pub mod scene;
+pub mod level;
 pub mod texture;
 pub mod framebuffer;
 pub mod vao;

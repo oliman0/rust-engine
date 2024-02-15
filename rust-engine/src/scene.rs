@@ -4,71 +4,59 @@ use nalgebra_glm;
 
 use glfw::ffi as glfw;
 
+use crate::level::{level, Level};
 use crate::mesh::{ Mesh, mesh_vertices };
-use crate::shader::Shader;
 use crate::ui::{ ui, UIElement, UI };
 use crate::window::Window;
-use crate::camera::{ Camera, camera };
+
+pub trait SceneManager {
+    fn update(&mut self, level: &mut Level, ui: &mut UI, window: &Window, delta_time: f32);
+}
 
 pub struct Scene {
-    objects: Vec<Mesh>,
+    // LEVEL
+    level: Level,
     ui: UI,
-    camera: Camera,
     clear_colour: nalgebra_glm::Vec4,
-    update_fn: fn(&mut Scene, &Window, f32),
-    build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>),
-    cursor_locked: bool,
-    fps: i32
+    // MANAGER
+    build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>, Box<dyn SceneManager>),
+    manager: Box<dyn SceneManager>,
+    fps_tmp: i32
 }
 
 impl Scene {
-    pub fn draw(&self, shader: &Shader, ui_shader: &Shader, text_shader: &Shader) {
-        shader.set_uniform_mat4("view", &self.camera.view());
-
-        for obj in &self.objects {
-            obj.draw(shader); 
-        }
-
-        self.ui.draw(ui_shader, text_shader);
-        
-        // DEV TOOL
-        //if !self.cursor_locked { self.ui.draw_string_bg("CURSOR UNLOCKED", 2.0, &nalgebra_glm::vec3(0.0, 0.0, 0.0), &nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), &nalgebra_glm::vec4(0.0, 0.0, 1.0, 1.0), &nalgebra_glm::vec2(1.0, 0.0), 0, ui_shader, text_shader) }
-    }
-    pub fn add_obj(&mut self, obj: Mesh) {
-        self.objects.push(obj);
-    }
+    pub fn draw_level(&self) { self.level.draw(); }
+    pub fn draw_ui(&self) { self.ui.draw(); self.ui.draw_string(&self.fps_tmp.to_string(), 5.0, &nalgebra_glm::vec3(10.0, 1000.0, 0.0), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0)); }
+    pub fn add_obj(&mut self, obj: Mesh) { self.level.add_obj(obj); }
     pub fn update(&mut self, window: &mut Window, delta_time: f32) {
-        self.cursor_locked = window.get_cursor_locked();
-        self.fps = window.get_fps();
-
         self.ui.update(self, window);
+
+        self.fps_tmp = window.get_fps();
 
         if window.get_key_down(glfw::KEY_R) {
             self.reload();
         }
 
-        if self.cursor_locked { self.camera.update(window, delta_time); }
-
-        if window.get_key_down(glfw::KEY_GRAVE_ACCENT) && self.cursor_locked { window.set_cursor_locked(false); }
+        if window.get_key_down(glfw::KEY_GRAVE_ACCENT) && window.get_cursor_locked() { window.set_cursor_locked(false); }
         else if window.get_key_down(glfw::KEY_GRAVE_ACCENT) { window.set_cursor_locked(true); }
 
-        (self.update_fn)(self, window, delta_time);
+        self.manager.update(&mut self.level, &mut self.ui, window, delta_time);
     }
     
     fn reload(&mut self) { 
-        self.objects.clear();
-
-        let (objs, els) = (self.build_fn)();
-        self.objects = objs;
-        self.ui = ui(els, "wave-standard", 12.0);
+        let (objs, els, manager) = (self.build_fn)();
+        self.level.reload(objs);
+        self.ui.reload(els);
+        self.manager = manager;
     }
     
     pub fn get_clear_colour(&self) -> &nalgebra_glm::Vec4 { &self.clear_colour }
 }
-pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>), update: fn(&mut Scene, &Window, f32), pos: nalgebra_glm::Vec3, col: nalgebra_glm::Vec4) -> Scene {
-    let (objs, elements ) = (build)();
-    Scene { objects: objs, ui: ui(elements, "wave-standard", 12.0), 
-        camera: camera(pos), clear_colour: col, update_fn: update, build_fn: build, cursor_locked: false, fps: 0 }
+pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>, Box<dyn SceneManager>), pos: nalgebra_glm::Vec3, col: nalgebra_glm::Vec4, scr_width: f32, scr_height: f32) -> Scene {
+    let (objs, elements , manager) = (build)();
+
+    Scene { level: level(objs, pos, scr_width, scr_height), ui: ui(elements, "wave-standard", 12.0, scr_width, scr_height), 
+        clear_colour: col, manager: manager, build_fn: build, fps_tmp: 0 }
 }
 
 pub fn load_level_from_file(path: &str) -> Vec<Mesh> {

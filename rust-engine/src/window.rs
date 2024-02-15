@@ -9,6 +9,7 @@ pub struct Window {
     last_time: f32,
     count_frames: i32,
     last_frame_time: f32,
+    delta_time: f32,
     fps: i32,
     // WINDOW INFO
     window_size: nalgebra_glm::Vec2,
@@ -60,7 +61,7 @@ impl Window {
         let (center_x, center_y): (f32, f32) = (self.window_size.x as f32 / 2., self.window_size.y as f32 / 2.);
 
         self.mouse_offset = nalgebra_glm::vec2(xpos as f32 - center_x, center_y - ypos as f32);
-        self.mouse_offset *= self.sensitivity;
+        self.mouse_offset *= self.sensitivity * self.delta_time;
 
         self.mouse_pos = nalgebra_glm::vec2(xpos as f32, ypos as f32);
 
@@ -77,10 +78,10 @@ impl Window {
     }
     pub fn get_deltatime(&mut self) -> f32 {
         let current_time = unsafe { glfwGetTime() as f32 };
-        let delta_time = current_time - self.last_time;
+        self.delta_time = current_time - self.last_time;
         self.last_time = current_time;
 
-        delta_time
+        self.delta_time
     }
     pub fn get_fps(&self) -> i32 { self.fps }
 
@@ -99,6 +100,9 @@ impl Window {
 
     pub fn get_cursor_free(&self) -> bool { self.cursor_free }
     pub fn set_cursor_free(&mut self, free: bool) { self.cursor_free = free }
+
+    pub fn get_window_size(&self) -> nalgebra_glm::Vec2 { self.window_size }
+    pub fn get_viewport_size(&self) -> nalgebra_glm::Vec2 { self.viewport_size } 
 }
 pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, viewport_h: i32, sensitivity: f32) -> &mut Window {
     unsafe {
@@ -131,6 +135,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     let window = Box::new(Window {
             window: glfwwindow,
             last_time: 0.0,
+            delta_time: 0.0,
             count_frames: 0, last_frame_time: 0.0, fps: 0,
             window_size: nalgebra_glm::vec2(scr_width as f32, scr_height as f32), viewport_size: nalgebra_glm::vec2(viewport_w as f32, viewport_h as f32), frame_size: nalgebra_glm::vec2(fx as f32, fy as f32),
             cursor_locked: false,
@@ -151,8 +156,6 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     // gl: load all OpenGL function pointers
     // ---------------------------------------
     gl::load_with(|ptr| glfw::with_c_str(ptr, |ptr| glfwGetProcAddress(ptr)));
-    
-    gl::Viewport(0, 0, viewport_w, viewport_h);
 
     glfwSetKeyCallback(glfwwindow, std::mem::transmute(key_callback as *const ()));
     glfwSetMouseButtonCallback(glfwwindow, std::mem::transmute(mouse_button_callback as *const ()));
@@ -168,7 +171,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
 
     glfwSwapInterval(1);
     
-    //if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 10.0 }
+    if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 0.3 }
 
     &mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)
 }

@@ -1,7 +1,4 @@
 use nalgebra_glm;
-use glfw::ffi as glfw;
-
-use crate::window::Window;
 
 pub const TO_RADIANS: f32 = 180.0/3.1415926;
 
@@ -10,32 +7,31 @@ pub struct Camera {
     up: nalgebra_glm::Vec3,
     front: nalgebra_glm::Vec3,
     look_front: nalgebra_glm::Vec3,
-    speed: f32,
     yaw: f32,
     pitch: f32
 }
 
 impl Camera {
-    pub fn update(&mut self, window: &Window, delta_time: f32) {
-        if window.get_key(glfw::KEY_W) {
-            self.position += (self.speed * delta_time) * self.front;
-        }   
-        if window.get_key(glfw::KEY_S) {
-            self.position -= (self.speed * delta_time) * self.front;
-        }
-        if window.get_key(glfw::KEY_A) {
-            self.position -= nalgebra_glm::normalize(&nalgebra_glm::cross(&self.front, &self.up)) * (self.speed * delta_time);
-        }
-        if window.get_key(glfw::KEY_D) {
-            self.position += nalgebra_glm::normalize(&nalgebra_glm::cross(&self.front, &self.up)) * (self.speed * delta_time);
-        }
-
-        self.yaw += window.get_mouse_offset().x * delta_time;
-        self.pitch += window.get_mouse_offset().y * delta_time;
+    pub fn set_position(&mut self, pos: nalgebra_glm::Vec3) { self.position = pos; }
+    pub fn move_position(&mut self, pos: &nalgebra_glm::Vec3) { self.position += pos }
+    pub fn get_position(&self) -> nalgebra_glm::Vec3 { self.position }
+    pub fn set_pitch_yaw(&mut self, vec: &nalgebra_glm::Vec2) {
+        self.yaw = vec.x;
+        self.pitch = vec.y;
 
         if self.pitch > 89.0 { self.pitch =  89.0 }
         if self.pitch < -89.0 { self.pitch = -89.0 }
+    }
+    pub fn add_pitch_yaw(&mut self, vec: &nalgebra_glm::Vec2) {
+        self.yaw += vec.x;
+        self.pitch += vec.y;
 
+        if self.pitch > 89.0 { self.pitch =  89.0 }
+        if self.pitch < -89.0 { self.pitch = -89.0 }
+    }
+    pub fn get_front(&self) -> nalgebra_glm::Vec3 { self.front }
+
+    pub fn update_direction(&mut self) {
         let mut direction: nalgebra_glm::Vec3 = nalgebra_glm::vec3(0.0, 0.0, 0.0);
         direction.x = (self.yaw / TO_RADIANS).cos() * (self.pitch / TO_RADIANS).cos();
         direction.z = (self.yaw / TO_RADIANS).sin() * (self.pitch / TO_RADIANS).cos();
@@ -55,7 +51,6 @@ pub fn camera(pos: nalgebra_glm::Vec3) -> Camera {
                 up: nalgebra_glm::vec3(0.0, 1.0, 0.0),
                 front: nalgebra_glm::vec3(0.0, 0.0, -1.0),
                 look_front: nalgebra_glm::vec3(0.0, 0.0, -1.0),
-                speed: 10.0,
                 yaw: 0.0,
                 pitch: 0.0 }
 }

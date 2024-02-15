@@ -5,7 +5,7 @@ use gl::DEPTH_TEST;
 use glfw::ffi as glfw;
 
 use crate::scene::Scene;
-use crate::shader::Shader;
+use crate::shader::{shader, Shader};
 use crate::texture::{ generate_texture_and_size_path, generate_texture };
 use crate::vao::create_vao_and_ibo;
 use crate::window::Window;
@@ -97,7 +97,11 @@ pub struct UI {
     elements: Vec<UIElement>,
     vao: u32,
     vbo: u32,
-    ibo: u32
+    ibo: u32,
+    // PROJECTION & SHADER
+    ui_projection: nalgebra_glm::Mat4,
+    ui_shader: Shader,
+    text_shader: Shader
 }
 
 impl Drop for UI {
@@ -110,11 +114,11 @@ impl Drop for UI {
     }
 }
 impl UI {
-    pub fn draw(&self, ui_shader: &Shader, text_shader: &Shader) {
+    pub fn draw(&self) {
         for element in &self.elements {
             match element {
-                UIElement::UIButton(element) => { self.draw_display(&element.display, ui_shader, text_shader) }
-                UIElement::UIDisplay(element) => { self.draw_display(&element, ui_shader, text_shader) }
+                UIElement::UIButton(element) => { self.draw_display(&element.display) }
+                UIElement::UIDisplay(element) => { self.draw_display(&element) }
             }
         }
     }
@@ -131,12 +135,12 @@ impl UI {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
                             }
-                                window.set_cursor_free(true);
+                            window.set_cursor_free(true);
                         }
                         else { window.set_cursor_free(false); }
                     }
                     UIDisplay::UIText(disp) => {
-                        if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.get_string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
+                        if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
                            mouse_pos.y > (disp.position.y + ((disp.padding.y * disp.text_size) + (3.0 * disp.text_size))) && mouse_pos.y < (disp.position.y + (self.char_height * disp.text_size) + ((disp.padding.y + (3.0 * disp.text_size)) * disp.text_size)) {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(scene, self);
@@ -151,7 +155,7 @@ impl UI {
         }
     }
 
-    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
+    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
             let mut position = *pos;
 
             for char in str.chars() {
@@ -159,52 +163,52 @@ impl UI {
                     position.x += 3.0 * text_size
                 }
                 else {
-                    self.draw_character(&self.characters[char as usize], text_size, &position, colour, shader);
+                    self.draw_character(&self.characters[char as usize], text_size, &position, colour);
                     position.x += (self.characters[char as usize].width * text_size) + text_size;
                 }
             }
         }
-    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32, shader: &Shader, text_shader: &Shader) {
+    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32) {
         let mut position = *pos;
         let padding = pad * text_size;
 
-        let str_size = self.get_string_size(str, text_size);
+        let str_size = self.string_size(str, text_size);
         self.draw_sprite(bg_texture_id, &nalgebra_glm::vec3(position.x - padding.x, position.y - padding.y, 0.0),
                         &nalgebra_glm::vec2(str_size.x + (padding.x * 2.0), str_size.y + (3.0 * text_size) + (padding.y * 2.0)),
-                        bg_colour, false, shader);
+                        bg_colour, false);
 
         for char in str.chars() {
             if char as i32 == 32 {
                 position.x += 3.0 * text_size
             }
             else {
-                self.draw_character(&self.characters[char as usize], text_size, &position, colour, text_shader);
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour);
                 position.x += (self.characters[char as usize].width * text_size) + text_size;
             }
         }
     }
 
-    fn draw_display(&self, display: &UIDisplay, ui_shader: &Shader, text_shader: &Shader) {
+    fn draw_display(&self, display: &UIDisplay) {
         match display {
-            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, ui_shader)}
+            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture)}
             UIDisplay::UIText(el) => {
-                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, &el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id, ui_shader, text_shader) }
-                else { self.draw_string(&el.text, el.text_size, &el.position, &el.colour, text_shader) }
+                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, &el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id) }
+                else { self.draw_string(&el.text, el.text_size, &el.position, &el.colour) }
             }
         }
     }
-    fn draw_sprite(&self, texture_id: u32, position: &nalgebra_glm::Vec3, size: &nalgebra_glm::Vec2, colour: &nalgebra_glm::Vec4, using_texture: bool, shader: &Shader) {
+    fn draw_sprite(&self, texture_id: u32, position: &nalgebra_glm::Vec3, size: &nalgebra_glm::Vec2, colour: &nalgebra_glm::Vec4, using_texture: bool) {
         unsafe {
-            shader.use_shader();
+            self.ui_shader.use_shader();
 
             gl::Disable(gl::DEPTH_TEST);
 
             let mut model: nalgebra_glm::Mat4 = nalgebra_glm::identity();
             model = nalgebra_glm::translate(&model, &position);
             model = nalgebra_glm::scale(&model, &nalgebra_glm::vec3(size.x, size.y, 1.0));
-            shader.set_uniform_mat4("model", &model);
-            shader.set_uniform_vec4("colour", &colour);
-            shader.set_uniform_bool("usingTexture", using_texture);
+            self.ui_shader.set_uniform_mat4("model", &model);
+            self.ui_shader.set_uniform_vec4("colour", &colour);
+            self.ui_shader.set_uniform_bool("usingTexture", using_texture);
 
             gl::BindVertexArray(self.vao);
 
@@ -226,18 +230,18 @@ impl UI {
             gl::Enable(DEPTH_TEST);
         }
     }
-    fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, shader: &Shader) {
+    fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
         unsafe {
-            shader.use_shader();
+            self.text_shader.use_shader();
 
             gl::Disable(gl::DEPTH_TEST);
 
             let mut model: nalgebra_glm::Mat4 = nalgebra_glm::identity();
             model = nalgebra_glm::translate(&model, &position);
             model = nalgebra_glm::scale(&model, &nalgebra_glm::vec3(char.width * text_size, self.char_height * text_size, 1.0));
-            shader.set_uniform_mat4("model", &model);
-            shader.set_uniform_vec4("colour", &colour);
-            shader.set_uniform_bool("usingTexture", true);
+            self.text_shader.set_uniform_mat4("model", &model);
+            self.text_shader.set_uniform_vec4("colour", &colour);
+            self.text_shader.set_uniform_bool("usingTexture", true);
 
             gl::BindVertexArray(self.vao);
 
@@ -256,7 +260,7 @@ impl UI {
         }
     }
 
-    pub fn get_string_size(&self, str: &str, text_size: f32) -> nalgebra_glm::Vec2 {
+    pub fn string_size(&self, str: &str, text_size: f32) -> nalgebra_glm::Vec2 {
         let mut size = nalgebra_glm::vec2(0.0, self.char_height * text_size);
 
         for char in str.chars() {
@@ -272,8 +276,13 @@ impl UI {
 
         size
     }
+
+    pub fn reload(&mut self, elements: Vec<UIElement>) { self.elements = elements; }
+
+    pub fn ui_shader(&self) -> &Shader { &self.ui_shader }
+    pub fn text_shader(&self) -> &Shader { &self.text_shader }
 }
-pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32) -> UI {
+pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_width: f32, projection_height: f32) -> UI {
     let mut chars: Vec<Character> = Vec::new();
 
     let mut i = 0;
@@ -296,5 +305,14 @@ pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32) -> UI {
 
     let (vao, vbo, ibo) = create_vao_and_ibo(&vertices, &indices);
 
-    UI { characters: chars, char_height: char_height, elements: elements, vao: vao, ibo: ibo, vbo: vbo }
+    let projection = nalgebra_glm::ortho(0.0, projection_width, 0.0, projection_height, -1.0, 1.0);
+    let (ushader, tshader) = (shader("./shaders/ui_shader.vert", "./shaders/ui_shader.frag"), shader("./shaders/ui_shader.vert", "./shaders/text_shader.frag"));
+    ushader.set_uniform_mat4("projection", &projection);
+    tshader.set_uniform_mat4("projection", &projection);
+    ushader.set_uniform_mat4("view", &nalgebra_glm::identity());
+    tshader.set_uniform_mat4("view", &nalgebra_glm::identity());
+
+    UI { characters: chars, char_height: char_height, elements: elements, vao: vao, ibo: ibo, vbo: vbo,
+         ui_projection: projection,
+         ui_shader: ushader, text_shader: tshader }
 }

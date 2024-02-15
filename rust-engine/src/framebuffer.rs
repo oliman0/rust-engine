@@ -5,7 +5,9 @@ pub struct FrameBuffer {
     texture: u32,
     rbo: u32,
     width: i32,
-    height: i32
+    height: i32,
+    scr_width: i32,
+    scr_height: i32
 }
 
 impl Drop for FrameBuffer {
@@ -36,16 +38,15 @@ impl FrameBuffer {
     pub fn copy_to_default_buffer(&self) {
         unsafe {
             gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0);
-            gl::BlitFramebuffer(0, 0, self.width, self.height, 0, 0, 1920, 1080, gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT, gl::NEAREST);
+            gl::BlitFramebuffer(0, 0, self.width, self.height, 0, 0, self.scr_width, self.scr_height, gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT, gl::NEAREST);
         }
     }
-    pub fn bind(&self) { unsafe { gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo); } }
+    pub fn bind(&self) { unsafe { gl::Viewport(0, 0, self.width, self.height); gl::BindFramebuffer(gl::FRAMEBUFFER, self.fbo); } }
+    pub fn unbind(&self) { unsafe { gl::Viewport(0, 0, self.scr_width, self.scr_height); gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0); } }
 }
-pub fn framebuffer(scr_width: i32, scr_height: i32) -> FrameBuffer {
+pub fn framebuffer(width:i32, height: i32, scr_width: i32, scr_height: i32) -> FrameBuffer {
     unsafe {
-        let mut framebuffer = FrameBuffer {fbo: 0, texture: 0, rbo: 0, height: 0, width: 0};
-        framebuffer.width = scr_width;
-        framebuffer.height = scr_height;
+        let mut framebuffer = FrameBuffer {fbo: 0, texture: 0, rbo: 0, width: width, height: height, scr_width: scr_width, scr_height: scr_height};
 
         gl::GenFramebuffers(1, &mut framebuffer.fbo);
         gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer.fbo); 
