@@ -35,8 +35,13 @@ File Formats:
     - Level System Redesign
         - Player obj
         - Player Input independant of engine
+        
+    - Change Scene Manager for a Unity-Style Script Struct
+        - Vec<ScenScript>
+        
+    - Draw Line?
 
-</𝒏𝒐𝒕𝒆𝒔> 
+</notes> 
 */
 
 
