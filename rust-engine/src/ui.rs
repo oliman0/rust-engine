@@ -4,7 +4,7 @@ use gl::DEPTH_TEST;
 
 use glfw::ffi as glfw;
 
-use crate::scene::Scene;
+use crate::level::Level;
 use crate::shader::{shader, Shader};
 use crate::texture::{ generate_texture_and_size_path, generate_texture };
 use crate::vao::create_vao_and_ibo;
@@ -22,9 +22,9 @@ pub enum UIDisplay {
 
 pub struct UIButtonElement {
     display: UIDisplay,
-    on_click_fn: fn(&Scene, &UI)
+    on_click_fn: fn(&Level, &UI)
 }
-pub fn ui_button(display: UIDisplay, on_click: fn(&Scene, &UI)) -> UIElement {
+pub fn ui_button(display: UIDisplay, on_click: fn(&Level, &UI)) -> UIElement {
     UIElement::UIButton(UIButtonElement { display: display, on_click_fn: on_click })
 }
 
@@ -101,7 +101,9 @@ pub struct UI {
     // PROJECTION & SHADER
     ui_projection: nalgebra_glm::Mat4,
     ui_shader: Shader,
-    text_shader: Shader
+    text_shader: Shader,
+    click_position_offset: nalgebra_glm::Vec2,
+    click_scale_offset: f32
 }
 
 impl Drop for UI {
@@ -123,8 +125,8 @@ impl UI {
         }
     }
 
-    pub fn update(&self, scene: &Scene, window: &mut Window) {
-        let mouse_pos = window.get_mouse_position();
+    pub fn update(&self, level: &Level, window: &mut Window) {
+        let mouse_pos = (window.get_mouse_position() + self.click_position_offset) / self.click_scale_offset;
 
         for el in &self.elements {
             match el {
@@ -133,7 +135,7 @@ impl UI {
                         if mouse_pos.x > disp.position.x && mouse_pos.x < (disp.position.x + disp.size.x) &&
                            mouse_pos.y > disp.position.y && mouse_pos.y < (disp.position.y + disp.size.y) {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
-                                (el.on_click_fn)(scene, self);
+                                (el.on_click_fn)(level, self);
                             }
                             window.set_cursor_free(true);
                         }
@@ -143,7 +145,7 @@ impl UI {
                         if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
                            mouse_pos.y > (disp.position.y + ((disp.padding.y * disp.text_size) + (3.0 * disp.text_size))) && mouse_pos.y < (disp.position.y + (self.char_height * disp.text_size) + ((disp.padding.y + (3.0 * disp.text_size)) * disp.text_size)) {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
-                                (el.on_click_fn)(scene, self);
+                                (el.on_click_fn)(level, self);
                             }
                             window.set_cursor_free(true);
                         }
@@ -155,8 +157,8 @@ impl UI {
         }
     }
 
-    pub fn draw_string(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
-            let mut position = *pos;
+    pub fn draw_string(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
+            let mut position = pos;
 
             for char in str.chars() {
                 if char as i32 == 32 {
@@ -168,8 +170,8 @@ impl UI {
                 }
             }
         }
-    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32) {
-        let mut position = *pos;
+    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32) {
+        let mut position = pos;
         let padding = pad * text_size;
 
         let str_size = self.string_size(str, text_size);
@@ -192,8 +194,8 @@ impl UI {
         match display {
             UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture)}
             UIDisplay::UIText(el) => {
-                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, &el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id) }
-                else { self.draw_string(&el.text, el.text_size, &el.position, &el.colour) }
+                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id) }
+                else { self.draw_string(&el.text, el.text_size, el.position, &el.colour) }
             }
         }
     }
@@ -281,6 +283,9 @@ impl UI {
 
     pub fn ui_shader(&self) -> &Shader { &self.ui_shader }
     pub fn text_shader(&self) -> &Shader { &self.text_shader }
+
+    pub fn set_position_offset(&mut self, pos: nalgebra_glm::Vec2) { self.click_position_offset = pos }
+    pub fn set_scale_offset(&mut self, scale: f32) { self.click_scale_offset = scale }
 }
 pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_width: f32, projection_height: f32) -> UI {
     let mut chars: Vec<Character> = Vec::new();
@@ -314,5 +319,5 @@ pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_wi
 
     UI { characters: chars, char_height: char_height, elements: elements, vao: vao, ibo: ibo, vbo: vbo,
          ui_projection: projection,
-         ui_shader: ushader, text_shader: tshader }
+         ui_shader: ushader, text_shader: tshader, click_position_offset: nalgebra_glm::vec2(0.0, 0.0), click_scale_offset: 1.0 }
 }

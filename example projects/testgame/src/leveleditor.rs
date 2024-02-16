@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_sprite_notex, UIElement, UI}, scene::{Scene, SceneManager}, mesh::Mesh as Obj, window::Window, level::Level, input};
+use rustengine::{ui::{ui_button, ui_sprite_notex, UIElement, UI}, scene::SceneManager, mesh::Mesh as Obj, window::Window, level::Level, input};
 use rustengine::glm;
 
 struct LevelEditor {
@@ -14,15 +14,17 @@ impl SceneManager for LevelEditor {
             self.zoom += window.get_scroll_wheel_y_offset();
             if self.zoom <= 0.0 { self.zoom = 1.0 }
             ui.ui_shader().set_uniform_mat4("view", &glm::scale(&level.camera().view(), &glm::vec3(self.zoom, self.zoom, 1.0)));
+            ui.set_scale_offset(self.zoom);
         }
 
         if window.get_mouse_button(input::MOUSE_BUTTON_1) {
             let mouse_pos = window.get_mouse_position();
 
-            level.camera_mut().move_position(& -(glm::vec3(mouse_pos.x - self.last_mouse_pos.x, mouse_pos.y - self.last_mouse_pos.y, 0.0) * 5.0));
+            level.camera_mut().move_position(& -(glm::vec3(mouse_pos.x - self.last_mouse_pos.x, mouse_pos.y - self.last_mouse_pos.y, 0.0)));
 
             ui.ui_shader().set_uniform_mat4("view", &glm::scale(&level.camera().view(), &glm::vec3(self.zoom, self.zoom, 1.0)));
             ui.text_shader().set_uniform_mat4("view", &level.camera().view());
+            ui.set_position_offset(level.camera().get_position().xy());
 
             self.last_mouse_pos = mouse_pos;
         }
@@ -44,6 +46,6 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
     (Vec::new(), uiels, Box::new(LevelEditor { last_mouse_pos: glm::vec2(0.0, 0.0), zoom: 1.0 }))
 }
 
-fn test_button(_scene: &Scene, _ui: &UI) {
+fn test_button(_level: &Level, _ui: &UI) {
     println!("clicked");
 }

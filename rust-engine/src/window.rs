@@ -91,8 +91,8 @@ impl Window {
     pub fn get_mouse_button_down(&self, button: i32) -> bool { self.mouse_buttons[button as usize] }
     pub fn get_mouse_position_raw(&self) -> nalgebra_glm::Vec2 { self.mouse_pos }
     pub fn get_mouse_position(&self) -> nalgebra_glm::Vec2 {
-        nalgebra_glm::vec2((self.mouse_pos.x - (self.window_size.x - self.frame_size.x)) / (self.window_size.x / self.viewport_size.x), 
-        ((self.window_size.y - self.mouse_pos.y) - (self.window_size.y - self.frame_size.y)) / (self.window_size.y / self.viewport_size.y))
+        nalgebra_glm::vec2(self.mouse_pos.x - (self.window_size.x - self.frame_size.x), 
+        (self.window_size.y - self.mouse_pos.y) - (self.window_size.y - self.frame_size.y))
     }
     pub fn get_mouse_offset(&self) -> nalgebra_glm::Vec2 { self.mouse_offset }
     pub fn get_scroll_wheel_x_offset(&self) -> f32 { self.scroll_wheel_x_offset }
@@ -171,7 +171,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
 
     glfwSwapInterval(1);
     
-    if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 0.3 }
+    //if glfwRawMouseMotionSupported() == 1 { glfwSetInputMode(glfwwindow, RAW_MOUSE_MOTION, 1); (&mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)).sensitivity *= 0.3 }
 
     &mut *(glfwGetWindowUserPointer(glfwwindow) as *mut Window)
 }

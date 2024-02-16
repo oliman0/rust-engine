@@ -50,7 +50,7 @@ impl Mesh {
             }
         }
     }
-    pub fn move_pos(&mut self, vec: nalgebra_glm::Vec3) { self.position += vec; }
+    pub fn move_pos(&mut self, vec: &nalgebra_glm::Vec3) { self.position += vec; }
     pub fn set_pos(&mut self, vec: nalgebra_glm::Vec3) { self.position = vec; }
 }
 fn create(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, sizez: f32, texture: u32, colour: nalgebra_glm::Vec4, using_texture: bool) -> Mesh { 

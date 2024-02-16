@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{Scene, load_level_from_file, SceneManager}, mesh::Mesh as Obj, window::Window, level::Level, input};
+use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{load_level_from_file, SceneManager}, mesh::Mesh as Obj, window::Window, level::Level, input};
 use rustengine::glm;
 
 struct Scene1 {
@@ -38,6 +38,6 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
     (load_level_from_file("level"), uiels, Box::new(Scene1 {move_speed: 10.0}))
 }
 
-fn test_button(_scene: &Scene, _ui: &UI) {
+fn test_button(_level: &Level, _ui: &UI) {
     println!("clicked");
 }
