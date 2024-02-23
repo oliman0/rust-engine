@@ -3,12 +3,13 @@ use rustengine::glm;
 
 struct LevelEditor {
     last_mouse_pos: glm::Vec2,
+    last_cursor_free: bool,
     zoom: f32,
 }
 
 impl SceneManager for LevelEditor {
     fn update(&mut self, level: &mut Level, ui: &mut UI, window: &Window, _delta_time: f32) {
-        if window.get_mouse_button_down(input::MOUSE_BUTTON_1) { self.last_mouse_pos = window.get_mouse_position(); }
+        if window.get_mouse_button_down(input::MOUSE_BUTTON_1) { self.last_mouse_pos = window.get_mouse_position(); self.last_cursor_free = window.get_cursor_free(); }
 
         if window.get_scroll_wheel_y_offset() != 0.0 {
             self.zoom += window.get_scroll_wheel_y_offset();
@@ -17,16 +18,19 @@ impl SceneManager for LevelEditor {
             ui.set_scale_offset(self.zoom);
         }
 
-        if window.get_mouse_button(input::MOUSE_BUTTON_1) {
+        if window.get_mouse_button(input::MOUSE_BUTTON_1) && self.last_cursor_free {
             let mouse_pos = window.get_mouse_position();
 
             level.camera_mut().move_position(& -(glm::vec3(mouse_pos.x - self.last_mouse_pos.x, mouse_pos.y - self.last_mouse_pos.y, 0.0)));
 
             ui.ui_shader().set_uniform_mat4("view", &glm::scale(&level.camera().view(), &glm::vec3(self.zoom, self.zoom, 1.0)));
-            ui.text_shader().set_uniform_mat4("view", &level.camera().view());
             ui.set_position_offset(level.camera().get_position().xy());
 
             self.last_mouse_pos = mouse_pos;
+        }
+
+        if window.get_key_down(input::KEY_K) {
+            ui.add_window(glm::vec3(100.0, 100.0, 0.0), glm::vec2(100.0, 200.0), glm::vec4(0.13, 0.13, 0.13, 1.0));
         }
     }
 }
@@ -43,7 +47,7 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
         if i % w == 0 { x-=spacing*w as f32; y+=spacing; }
     }
     
-    (Vec::new(), uiels, Box::new(LevelEditor { last_mouse_pos: glm::vec2(0.0, 0.0), zoom: 1.0 }))
+    (Vec::new(), uiels, Box::new(LevelEditor { last_mouse_pos: glm::vec2(0.0, 0.0), last_cursor_free: false, zoom: 1.0 }))
 }
 
 fn test_button(_level: &Level, _ui: &UI) {

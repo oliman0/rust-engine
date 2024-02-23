@@ -20,6 +20,16 @@ pub enum UIDisplay {
     UIText(UIText)
 }
 
+pub struct UIWindow {
+    elements: Vec<UIElement>,
+    position: nalgebra_glm::Vec3,
+    size: nalgebra_glm::Vec2,
+    colour: nalgebra_glm::Vec4
+}
+pub fn ui_window(position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> UIWindow {
+    UIWindow { elements: Vec::new(), position: position, size: size, colour: colour }
+}
+
 pub struct UIButtonElement {
     display: UIDisplay,
     on_click_fn: fn(&Level, &UI)
@@ -95,13 +105,13 @@ pub struct UI {
     char_height: f32,
     // UI
     elements: Vec<UIElement>,
+    windows: Vec<UIWindow>,
     vao: u32,
     vbo: u32,
     ibo: u32,
     // PROJECTION & SHADER
     ui_projection: nalgebra_glm::Mat4,
     ui_shader: Shader,
-    text_shader: Shader,
     click_position_offset: nalgebra_glm::Vec2,
     click_scale_offset: f32
 }
@@ -123,6 +133,8 @@ impl UI {
                 UIElement::UIDisplay(element) => { self.draw_display(&element) }
             }
         }
+
+        for window in &self.windows { self.draw_window(window) }
     }
 
     pub fn update(&self, level: &Level, window: &mut Window) {
@@ -137,9 +149,9 @@ impl UI {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(level, self);
                             }
-                            window.set_cursor_free(true);
+                            window.set_cursor_free(false);
                         }
-                        else { window.set_cursor_free(false); }
+                        else { window.set_cursor_free(true); }
                     }
                     UIDisplay::UIText(disp) => {
                         if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
@@ -147,9 +159,9 @@ impl UI {
                             if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
                                 (el.on_click_fn)(level, self);
                             }
-                            window.set_cursor_free(true);
+                            window.set_cursor_free(false);
                         }
-                        else { window.set_cursor_free(false); }
+                        else { window.set_cursor_free(true); }
                     }
                 } }
                 _ => ()
@@ -165,7 +177,7 @@ impl UI {
                     position.x += 3.0 * text_size
                 }
                 else {
-                    self.draw_character(&self.characters[char as usize], text_size, &position, colour);
+                    self.draw_character(&self.characters[char as usize], text_size, &position, colour, true);
                     position.x += (self.characters[char as usize].width * text_size) + text_size;
                 }
             }
@@ -177,29 +189,39 @@ impl UI {
         let str_size = self.string_size(str, text_size);
         self.draw_sprite(bg_texture_id, &nalgebra_glm::vec3(position.x - padding.x, position.y - padding.y, 0.0),
                         &nalgebra_glm::vec2(str_size.x + (padding.x * 2.0), str_size.y + (3.0 * text_size) + (padding.y * 2.0)),
-                        bg_colour, false);
+                        bg_colour, false, true);
 
         for char in str.chars() {
             if char as i32 == 32 {
                 position.x += 3.0 * text_size
             }
             else {
-                self.draw_character(&self.characters[char as usize], text_size, &position, colour);
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour, true);
                 position.x += (self.characters[char as usize].width * text_size) + text_size;
             }
         }
     }
 
+    fn draw_window(&self, window: &UIWindow) {
+        self.draw_sprite(0, &window.position, &window.size, &window.colour, false, false);
+    }
+    pub fn add_window(&mut self, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) {
+        self.windows.push(ui_window(position, size, colour));
+    }
+    pub fn drop_window(&mut self, id: i32) {
+        self.windows.remove(id as usize);
+    }
+
     fn draw_display(&self, display: &UIDisplay) {
         match display {
-            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture)}
+            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, true)}
             UIDisplay::UIText(el) => {
                 if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id) }
                 else { self.draw_string(&el.text, el.text_size, el.position, &el.colour) }
             }
         }
     }
-    fn draw_sprite(&self, texture_id: u32, position: &nalgebra_glm::Vec3, size: &nalgebra_glm::Vec2, colour: &nalgebra_glm::Vec4, using_texture: bool) {
+    fn draw_sprite(&self, texture_id: u32, position: &nalgebra_glm::Vec3, size: &nalgebra_glm::Vec2, colour: &nalgebra_glm::Vec4, using_texture: bool, using_view: bool) {
         unsafe {
             self.ui_shader.use_shader();
 
@@ -211,6 +233,8 @@ impl UI {
             self.ui_shader.set_uniform_mat4("model", &model);
             self.ui_shader.set_uniform_vec4("colour", &colour);
             self.ui_shader.set_uniform_bool("usingTexture", using_texture);
+            self.ui_shader.set_uniform_bool("addColour", false);
+            self.ui_shader.set_uniform_bool("useView", using_view);
 
             gl::BindVertexArray(self.vao);
 
@@ -232,18 +256,20 @@ impl UI {
             gl::Enable(DEPTH_TEST);
         }
     }
-    fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
+    fn draw_character(&self, char: &Character, text_size: f32, position: &nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, using_view: bool) {
         unsafe {
-            self.text_shader.use_shader();
+            self.ui_shader.use_shader();
 
             gl::Disable(gl::DEPTH_TEST);
 
             let mut model: nalgebra_glm::Mat4 = nalgebra_glm::identity();
             model = nalgebra_glm::translate(&model, &position);
             model = nalgebra_glm::scale(&model, &nalgebra_glm::vec3(char.width * text_size, self.char_height * text_size, 1.0));
-            self.text_shader.set_uniform_mat4("model", &model);
-            self.text_shader.set_uniform_vec4("colour", &colour);
-            self.text_shader.set_uniform_bool("usingTexture", true);
+            self.ui_shader.set_uniform_mat4("model", &model);
+            self.ui_shader.set_uniform_vec4("colour", &colour);
+            self.ui_shader.set_uniform_bool("usingTexture", true);
+            self.ui_shader.set_uniform_bool("addColour", true);
+            self.ui_shader.set_uniform_bool("useView", using_view);
 
             gl::BindVertexArray(self.vao);
 
@@ -282,7 +308,6 @@ impl UI {
     pub fn reload(&mut self, elements: Vec<UIElement>) { self.elements = elements; }
 
     pub fn ui_shader(&self) -> &Shader { &self.ui_shader }
-    pub fn text_shader(&self) -> &Shader { &self.text_shader }
 
     pub fn set_position_offset(&mut self, pos: nalgebra_glm::Vec2) { self.click_position_offset = pos }
     pub fn set_scale_offset(&mut self, scale: f32) { self.click_scale_offset = scale }
@@ -311,13 +336,11 @@ pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_wi
     let (vao, vbo, ibo) = create_vao_and_ibo(&vertices, &indices);
 
     let projection = nalgebra_glm::ortho(0.0, projection_width, 0.0, projection_height, -1.0, 1.0);
-    let (ushader, tshader) = (shader("./shaders/ui_shader.vert", "./shaders/ui_shader.frag"), shader("./shaders/ui_shader.vert", "./shaders/text_shader.frag"));
+    let ushader = shader("./shaders/ui_shader.vert", "./shaders/ui_shader.frag");
     ushader.set_uniform_mat4("projection", &projection);
-    tshader.set_uniform_mat4("projection", &projection);
     ushader.set_uniform_mat4("view", &nalgebra_glm::identity());
-    tshader.set_uniform_mat4("view", &nalgebra_glm::identity());
 
-    UI { characters: chars, char_height: char_height, elements: elements, vao: vao, ibo: ibo, vbo: vbo,
+    UI { characters: chars, char_height: char_height, elements: elements, windows: Vec::new(), vao: vao, ibo: ibo, vbo: vbo,
          ui_projection: projection,
-         ui_shader: ushader, text_shader: tshader, click_position_offset: nalgebra_glm::vec2(0.0, 0.0), click_scale_offset: 1.0 }
+         ui_shader: ushader, click_position_offset: nalgebra_glm::vec2(0.0, 0.0), click_scale_offset: 1.0 }
 }

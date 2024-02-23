@@ -13,7 +13,8 @@ pub struct Engine<'a> {
 }
 
 impl<'a> Engine<'a> {
-    pub fn draw(&self) {
+    pub fn draw(&mut self) {
+        self.window.swap_buffers();
         self.framebuffer.bind();
         
         clear_screen(self.scenes[self.active_scene as usize].get_clear_colour());
@@ -26,7 +27,6 @@ impl<'a> Engine<'a> {
         if self.active_scene >= 0 && self.active_scene < self.scenes.len() as i32 { self.scenes[self.active_scene as usize].draw_ui() }
     }
     pub fn update(&mut self) {
-        self.window.swap_buffers();
         self.window.poll_events();
 
         let delta_time = self.window.get_deltatime();
