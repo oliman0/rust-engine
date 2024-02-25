@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_sprite_notex, UIElement, UI}, scene::SceneManager, mesh::Mesh as Obj, window::Window, level::Level, input};
+use rustengine::{ui::{ui_sprite_button_notex, ui_sprite_button, UIElement, UI}, scene::SceneManager, mesh::Mesh as Obj, window::Window, level::Level, input};
 use rustengine::glm;
 
 struct LevelEditor {
@@ -9,7 +9,7 @@ struct LevelEditor {
 
 impl SceneManager for LevelEditor {
     fn update(&mut self, level: &mut Level, ui: &mut UI, window: &Window, _delta_time: f32) {
-        if window.get_mouse_button_down(input::MOUSE_BUTTON_1) { self.last_mouse_pos = window.get_mouse_position(); self.last_cursor_free = window.get_cursor_free(); }
+        if window.get_mouse_button_down(input::MOUSE_BUTTON_1) { self.last_mouse_pos = window.get_mouse_position(); self.last_cursor_free = ui.get_cursor_free() }
 
         if window.get_scroll_wheel_y_offset() != 0.0 {
             self.zoom += window.get_scroll_wheel_y_offset();
@@ -30,7 +30,8 @@ impl SceneManager for LevelEditor {
         }
 
         if window.get_key_down(input::KEY_K) {
-            ui.add_window(glm::vec3(100.0, 100.0, 0.0), glm::vec2(100.0, 200.0), glm::vec4(0.13, 0.13, 0.13, 1.0));
+            let win = ui.add_window("Test Window", glm::vec3(100.0, 100.0, 0.0), glm::vec2(800.0, 600.0), glm::vec4(0.13, 0.13, 0.13, 1.0));
+            win.add_element(ui_sprite_button("largecheck", glm::vec2(32.0, 32.0), glm::vec3(16.0, 500.0, 0.0), Some(tmp)));
         }
     }
 }
@@ -42,7 +43,7 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
     let spacing: f32 = 15.0;
     let (w, h): (i32, i32) = (25, 14);
     while i < w * h { i+=1;
-        uiels.push(ui_button(ui_sprite_notex(glm::vec4(0.2, 0.2, 0.2, 1.0), glm::vec2(5.0, 5.0), glm::vec3(x, y, 0.0)), test_button));
+        uiels.push(ui_sprite_button_notex(glm::vec4(0.2, 0.2, 0.2, 1.0), glm::vec2(5.0, 5.0), glm::vec3(x, y, 0.0), None));
         x+=spacing;
         if i % w == 0 { x-=spacing*w as f32; y+=spacing; }
     }
@@ -50,6 +51,6 @@ pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
     (Vec::new(), uiels, Box::new(LevelEditor { last_mouse_pos: glm::vec2(0.0, 0.0), last_cursor_free: false, zoom: 1.0 }))
 }
 
-fn test_button(_level: &Level, _ui: &UI) {
+fn tmp() {
     println!("clicked");
 }

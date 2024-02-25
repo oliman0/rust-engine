@@ -4,38 +4,80 @@ use gl::DEPTH_TEST;
 
 use glfw::ffi as glfw;
 
-use crate::level::Level;
 use crate::shader::{shader, Shader};
 use crate::texture::{ generate_texture_and_size_path, generate_texture };
 use crate::vao::create_vao_and_ibo;
 use crate::window::Window;
 
+// Elements
+// The Top Layer of Abstraction
 pub enum UIElement {
     UIButton(UIButtonElement),
     UIDisplay(UIDisplay)
 }
 
+// Displays
+// The Lower Level structs that hold data for Rendering
 pub enum UIDisplay {
     UISprite(UISprite),
     UIText(UIText)
 }
 
+// UI Window
 pub struct UIWindow {
+    title: String,
     elements: Vec<UIElement>,
+    close_button_hover: bool,
+    collapse_button_hover: bool,
+    collapsed: bool,
+    titlebar_height: f32,
     position: nalgebra_glm::Vec3,
     size: nalgebra_glm::Vec2,
-    colour: nalgebra_glm::Vec4
-}
-pub fn ui_window(position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> UIWindow {
-    UIWindow { elements: Vec::new(), position: position, size: size, colour: colour }
+    colour: nalgebra_glm::Vec4,
+    held: bool,
+    last_mouse_position: nalgebra_glm::Vec2
 }
 
+impl UIWindow {
+    pub fn add_element(&mut self, element: UIElement) { self.elements.push(element); }
+    pub fn drop_element(&mut self, id: i32) { self.elements.remove(id as usize); }
+}
+pub fn ui_window(title: &str, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> UIWindow {
+    UIWindow { title: title.to_string(),
+               elements: Vec::new(),
+               close_button_hover: false,
+               collapse_button_hover: false,
+               collapsed: false,
+               titlebar_height: 32.0, position: position, size: size, colour: colour, held: false, last_mouse_position: nalgebra_glm::vec2(0.0, 0.0) }
+}
+
+// Click Logic Struct
+struct ClickBox {
+    position1: nalgebra_glm::Vec2,
+    position2: nalgebra_glm::Vec2
+}
+
+impl ClickBox {
+    fn is_colliding(&self, cursor_pos: &nalgebra_glm::Vec2) -> bool {
+        cursor_pos > &self.position1 && cursor_pos < &self.position2
+    }
+}
+fn click_box(position1: nalgebra_glm::Vec2, position2: nalgebra_glm::Vec2) -> ClickBox {
+    ClickBox { position1: position1, position2: position2 }
+}
+
+// Lower Level Element and Display Structs
 pub struct UIButtonElement {
     display: UIDisplay,
-    on_click_fn: fn(&Level, &UI)
+    click_box: ClickBox,
+    click_callback: Option<fn()>,
+    clicked: bool
 }
-pub fn ui_button(display: UIDisplay, on_click: fn(&Level, &UI)) -> UIElement {
-    UIElement::UIButton(UIButtonElement { display: display, on_click_fn: on_click })
+pub fn ui_sprite_button(tex_name: &str, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3, callback: Option<fn()>) -> UIElement {
+    UIElement::UIButton(UIButtonElement { display: ui_sprite(tex_name, size, position), click_box: click_box(position.xy(), position.xy() + size), clicked: false, click_callback: callback })
+}
+pub fn ui_sprite_button_notex(colour: nalgebra_glm::Vec4, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3, callback: Option<fn()>) -> UIElement {
+    UIElement::UIButton(UIButtonElement { display: ui_sprite_notex(colour, size, position), click_box: click_box(position.xy(), position.xy() + size), clicked: false, click_callback: callback })
 }
 
 pub struct UISprite {
@@ -53,8 +95,8 @@ impl Drop for UISprite {
         }
     }
 }
-pub fn ui_sprite(fname: &str, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UIDisplay {
-    let tex_id = generate_texture(fname);
+pub fn ui_sprite(tex_name: &str, size: nalgebra_glm::Vec2, position: nalgebra_glm::Vec3) -> UIDisplay {
+    let tex_id = generate_texture(tex_name);
     UIDisplay::UISprite(UISprite { texture_id: tex_id, size: size,
             position: position, colour: nalgebra_glm::vec4(1.0, 1.0, 1.0, 1.0), using_texture: true })
 }
@@ -99,6 +141,7 @@ fn character(fname: &str) -> Character {
     Character { texture_id: tex_id, width: w }
 }
 
+// UI System and Implementation
 pub struct UI {
     // FONT
     characters: Vec<Character>,
@@ -109,11 +152,14 @@ pub struct UI {
     vao: u32,
     vbo: u32,
     ibo: u32,
+    window_icons: [u32; 3],
     // PROJECTION & SHADER
     ui_projection: nalgebra_glm::Mat4,
     ui_shader: Shader,
     click_position_offset: nalgebra_glm::Vec2,
-    click_scale_offset: f32
+    click_scale_offset: f32,
+    // INPUT
+    cursor_free: bool
 }
 
 impl Drop for UI {
@@ -127,49 +173,85 @@ impl Drop for UI {
 }
 impl UI {
     pub fn draw(&self) {
-        for element in &self.elements {
+        for element in &self.elements { 
             match element {
                 UIElement::UIButton(element) => { self.draw_display(&element.display) }
                 UIElement::UIDisplay(element) => { self.draw_display(&element) }
             }
         }
 
-        for window in &self.windows { self.draw_window(window) }
+        for window in &self.windows { self.draw_window(window); }
     }
 
-    pub fn update(&self, level: &Level, window: &mut Window) {
+    pub fn update(&mut self, window: &mut Window) {
         let mouse_pos = (window.get_mouse_position() + self.click_position_offset) / self.click_scale_offset;
+        let mouse_pos_static = window.get_mouse_position();
 
-        for el in &self.elements {
-            match el {
-                UIElement::UIButton(el) => { match &el.display {
-                    UIDisplay::UISprite(disp) => {
-                        if mouse_pos.x > disp.position.x && mouse_pos.x < (disp.position.x + disp.size.x) &&
-                           mouse_pos.y > disp.position.y && mouse_pos.y < (disp.position.y + disp.size.y) {
-                            if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
-                                (el.on_click_fn)(level, self);
-                            }
-                            window.set_cursor_free(false);
-                        }
-                        else { window.set_cursor_free(true); }
-                    }
-                    UIDisplay::UIText(disp) => {
-                        if mouse_pos.x > (disp.position.x - (disp.padding.x * disp.text_size)) && mouse_pos.x < (disp.position.x + self.string_size(&disp.text, disp.text_size).x + (disp.padding.x * disp.text_size)) &&
-                           mouse_pos.y > (disp.position.y + ((disp.padding.y * disp.text_size) + (3.0 * disp.text_size))) && mouse_pos.y < (disp.position.y + (self.char_height * disp.text_size) + ((disp.padding.y + (3.0 * disp.text_size)) * disp.text_size)) {
-                            if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
-                                (el.on_click_fn)(level, self);
-                            }
-                            window.set_cursor_free(false);
-                        }
-                        else { window.set_cursor_free(true); }
-                    }
-                } }
-                _ => ()
+        // 
+        // UI WINDOW
+        //
+        let mut win_close: i32 = -1;
+        for (i, win) in self.windows.iter_mut().enumerate() {
+            // Close Button
+            if mouse_pos_static.x > (win.position.x + (win.size.x - win.titlebar_height)) && mouse_pos_static.x < (win.position.x + win.size.x) &&
+               mouse_pos_static.y > (win.position.y + (win.size.y - win.titlebar_height)) && mouse_pos_static.y < (win.position.y + win.size.y) {
+                if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
+                    win_close = i as i32;
+                }
+                win.close_button_hover = true;
             }
-        }
+            else { win.close_button_hover = false; }
+
+            // Minimize/Maximize Button
+            if mouse_pos_static.x > (win.position.x + (win.size.x - (win.titlebar_height * 2.0))) && mouse_pos_static.x < (win.position.x + (win.size.x - win.titlebar_height)) &&
+               mouse_pos_static.y > (win.position.y + (win.size.y - win.titlebar_height)) && mouse_pos_static.y < (win.position.y + win.size.y) {
+                if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
+                    win.collapsed = !win.collapsed;
+                }
+                win.collapse_button_hover = true;
+            }
+            else { win.collapse_button_hover = false; }
+            
+            // Check if mouse is over window
+            if mouse_pos_static.x > win.position.x && mouse_pos_static.x < (win.position.x + win.size.x) &&
+               mouse_pos_static.y > win.position.y && mouse_pos_static.y < (win.position.y + win.size.y) {
+                self.cursor_free = false;
+            }
+            else { self.cursor_free = true; }
+
+            // Titlebar Grab
+            let titlebar_pos = nalgebra_glm::vec2(win.position.x, win.position.y + (win.size.y - win.titlebar_height));
+            if mouse_pos_static.x > titlebar_pos.x && mouse_pos_static.x < (titlebar_pos.x + win.size.x) &&
+            mouse_pos_static.y > titlebar_pos.y && mouse_pos_static.y < (titlebar_pos.y + win.titlebar_height) {
+                if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
+                    win.last_mouse_position = mouse_pos_static;
+                    win.held = true;
+                }
+            }
+        
+            // Titlebar Move
+            if window.get_mouse_button(glfw::MOUSE_BUTTON_1) && win.held {
+                win.position += nalgebra_glm::vec2_to_vec3(&(mouse_pos_static - win.last_mouse_position));
+                win.last_mouse_position = mouse_pos_static;
+            }
+            else if win.held {
+                win.held = false;
+            }
+
+            // Elements
+            if !win.collapsed {
+                update_elements(&mut win.elements, &(mouse_pos_static - win.position.xy()), window)
+            }
+        } 
+        if win_close != -1 { self.close_window(win_close); }
+
+        //
+        // UI ELEMENTS
+        //
+        if self.cursor_free { update_elements(&mut self.elements, &mouse_pos, window); }
     }
 
-    pub fn draw_string(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4) {
+    pub fn draw_string(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, using_view: bool) {
             let mut position = pos;
 
             for char in str.chars() {
@@ -177,47 +259,86 @@ impl UI {
                     position.x += 3.0 * text_size
                 }
                 else {
-                    self.draw_character(&self.characters[char as usize], text_size, &position, colour, true);
+                    self.draw_character(&self.characters[char as usize], text_size, &position, colour, using_view);
                     position.x += (self.characters[char as usize].width * text_size) + text_size;
                 }
             }
         }
-    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32) {
+    pub fn draw_string_bg(&self, str: &str, text_size: f32, pos: nalgebra_glm::Vec3, colour: &nalgebra_glm::Vec4, bg_colour: &nalgebra_glm::Vec4, pad: &nalgebra_glm::Vec2, bg_texture_id: u32, using_view: bool) {
         let mut position = pos;
         let padding = pad * text_size;
 
         let str_size = self.string_size(str, text_size);
         self.draw_sprite(bg_texture_id, &nalgebra_glm::vec3(position.x - padding.x, position.y - padding.y, 0.0),
                         &nalgebra_glm::vec2(str_size.x + (padding.x * 2.0), str_size.y + (3.0 * text_size) + (padding.y * 2.0)),
-                        bg_colour, false, true);
+                        bg_colour, false, using_view);
 
         for char in str.chars() {
             if char as i32 == 32 {
                 position.x += 3.0 * text_size
             }
             else {
-                self.draw_character(&self.characters[char as usize], text_size, &position, colour, true);
+                self.draw_character(&self.characters[char as usize], text_size, &position, colour, using_view);
                 position.x += (self.characters[char as usize].width * text_size) + text_size;
             }
         }
     }
 
     fn draw_window(&self, window: &UIWindow) {
-        self.draw_sprite(0, &window.position, &window.size, &window.colour, false, false);
+        // Window BG
+        if !window.collapsed { self.draw_sprite(0, &window.position, &window.size, &window.colour, false, false); }
+
+        // Titlebar
+        self.draw_sprite(0, &nalgebra_glm::vec3(window.position.x, window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.size.x, window.titlebar_height), &nalgebra_glm::vec4(0.15, 0.59, 0.75, 1.0), false, false);
+        // Close Button
+        if window.close_button_hover { self.draw_sprite(0, &nalgebra_glm::vec3(window.position.x + (window.size.x - window.titlebar_height), window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.titlebar_height, window.titlebar_height), &nalgebra_glm::vec4(0.2, 0.2, 0.2, 0.5), false, false); }
+        self.draw_sprite(self.window_icons[0], &nalgebra_glm::vec3(window.position.x + (window.size.x - window.titlebar_height), window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.titlebar_height, window.titlebar_height), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0), true, false);
+        // Minimize/Maximize Hover
+        if window.collapse_button_hover { self.draw_sprite(0, &nalgebra_glm::vec3(window.position.x + (window.size.x - (window.titlebar_height * 2.0)), window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.titlebar_height, window.titlebar_height), &nalgebra_glm::vec4(0.2, 0.2, 0.2, 0.5), false, false); }
+        // Minimize Button
+        if !window.collapsed { self.draw_sprite(self.window_icons[1], &nalgebra_glm::vec3(window.position.x + (window.size.x - (window.titlebar_height * 2.0)), window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.titlebar_height, window.titlebar_height), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0), true, false); }
+        // Maximize Button
+        if window.collapsed { self.draw_sprite(self.window_icons[2], &nalgebra_glm::vec3(window.position.x + (window.size.x - (window.titlebar_height * 2.0)), window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec2(window.titlebar_height, window.titlebar_height), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0), true, false); }
+        // Window Title
+        self.draw_string(&window.title, 2.0, nalgebra_glm::vec3(window.position.x + 6.0, window.position.y + (window.size.y - window.titlebar_height), 0.0), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0), false);
+
+        // Elements
+        if !window.collapsed {
+            for element in window.elements.iter() { 
+                match element {
+                    UIElement::UIButton(element) => { self.draw_window_display(&window, &element.display) }
+                    UIElement::UIDisplay(element) => { self.draw_window_display(&window, &element) }
+                }
+            }
+        }
     }
-    pub fn add_window(&mut self, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) {
-        self.windows.push(ui_window(position, size, colour));
+    fn draw_window_display(&self, window: &UIWindow, display: &UIDisplay) {
+        match display {
+            UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &(window.position + el.position), &el.size, &el.colour, el.using_texture, false)}
+            UIDisplay::UIText(el) => {
+                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, window.position + el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id, false) }
+                else { self.draw_string(&el.text, el.text_size, window.position + el.position, &el.colour, false) }
+            }
+        }
     }
-    pub fn drop_window(&mut self, id: i32) {
+    pub fn add_window(&mut self, title: &str, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> &mut UIWindow {
+        let window = self.windows.len();
+        
+        self.windows.push(ui_window(title, position, size, colour));
+
+        &mut self.windows[window]
+    }
+    pub fn close_window(&mut self, id: i32) {
         self.windows.remove(id as usize);
+        self.cursor_free = true;
     }
 
     fn draw_display(&self, display: &UIDisplay) {
         match display {
             UIDisplay::UISprite(el) => {self.draw_sprite(el.texture_id, &el.position, &el.size, &el.colour, el.using_texture, true)}
             UIDisplay::UIText(el) => {
-                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id) }
-                else { self.draw_string(&el.text, el.text_size, el.position, &el.colour) }
+                if el.bg_colour.w != 0.0 { self.draw_string_bg(&el.text, el.text_size, el.position, &el.colour, &el.bg_colour, &el.padding, el.bg_texture_id, true) }
+                else { self.draw_string(&el.text, el.text_size, el.position, &el.colour, true) }
             }
         }
     }
@@ -311,6 +432,8 @@ impl UI {
 
     pub fn set_position_offset(&mut self, pos: nalgebra_glm::Vec2) { self.click_position_offset = pos }
     pub fn set_scale_offset(&mut self, scale: f32) { self.click_scale_offset = scale }
+
+    pub fn get_cursor_free(&self) -> bool { self.cursor_free }
 }
 pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_width: f32, projection_height: f32) -> UI {
     let mut chars: Vec<Character> = Vec::new();
@@ -341,6 +464,28 @@ pub fn ui(elements: Vec<UIElement>, fname: &str, char_height: f32, projection_wi
     ushader.set_uniform_mat4("view", &nalgebra_glm::identity());
 
     UI { characters: chars, char_height: char_height, elements: elements, windows: Vec::new(), vao: vao, ibo: ibo, vbo: vbo,
+         window_icons: [generate_texture("close"), generate_texture("minimize"), generate_texture("maximize")],
          ui_projection: projection,
-         ui_shader: ushader, click_position_offset: nalgebra_glm::vec2(0.0, 0.0), click_scale_offset: 1.0 }
+         ui_shader: ushader, click_position_offset: nalgebra_glm::vec2(0.0, 0.0), click_scale_offset: 1.0,
+         cursor_free: true }
+}
+
+fn update_elements(elements: &mut Vec<UIElement>, mouse_pos: &nalgebra_glm::Vec2, window: &Window) {
+    for el in elements.iter_mut() {
+        match el {
+            UIElement::UIButton(el) => {
+                if el.click_box.is_colliding(mouse_pos) {
+                    if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
+                        el.clicked = true;
+                        if el.click_callback.is_some() { (el.click_callback.unwrap())() }
+                    }
+                    else {
+                        el.clicked = false;
+                    }
+                }
+                else if el.clicked { el.clicked = false; }
+            } 
+            _ => ()
+        }
+    }
 }

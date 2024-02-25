@@ -26,10 +26,10 @@ pub struct Scene {
 
 impl Scene {
     pub fn draw_level(&self) { self.level.draw(); }
-    pub fn draw_ui(&self) { self.ui.draw(); self.ui.draw_string(&self.fps_tmp.to_string(), 5.0, nalgebra_glm::vec3(10.0, 1000.0, 0.0), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0)); }
+    pub fn draw_ui(&self) { self.ui.draw(); self.ui.draw_string(&self.fps_tmp.to_string(), 5.0, nalgebra_glm::vec3(10.0, 1000.0, 0.0), &nalgebra_glm::vec4(0.0, 0.0, 0.0, 1.0), false); }
     pub fn add_obj(&mut self, obj: Mesh) { self.level.add_obj(obj); }
     pub fn update(&mut self, window: &mut Window, delta_time: f32) {
-        self.ui.update(&mut self.level, window);
+        self.ui.update(window);
 
         self.fps_tmp = window.get_fps();
 

@@ -25,8 +25,7 @@ pub struct Window {
     mouse_offset: nalgebra_glm::Vec2,
     scroll_wheel_x_offset: f32,
     scroll_wheel_y_offset: f32,
-    sensitivity: f32,
-    cursor_free: bool
+    sensitivity: f32
 }
 
 impl Drop for Window {
@@ -98,9 +97,6 @@ impl Window {
     pub fn get_scroll_wheel_x_offset(&self) -> f32 { self.scroll_wheel_x_offset }
     pub fn get_scroll_wheel_y_offset(&self) -> f32 { self.scroll_wheel_y_offset }
 
-    pub fn get_cursor_free(&self) -> bool { self.cursor_free }
-    pub fn set_cursor_free(&mut self, free: bool) { self.cursor_free = free }
-
     pub fn get_window_size(&self) -> nalgebra_glm::Vec2 { self.window_size }
     pub fn get_viewport_size(&self) -> nalgebra_glm::Vec2 { self.viewport_size } 
 }
@@ -147,8 +143,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
             mouse_offset: nalgebra_glm::vec2(0.0, 0.0),
             scroll_wheel_x_offset: 0.0,
             scroll_wheel_y_offset: 0.0,
-            sensitivity: sensitivity,
-            cursor_free: true
+            sensitivity: sensitivity
     });
     
     glfwMakeContextCurrent(glfwwindow);

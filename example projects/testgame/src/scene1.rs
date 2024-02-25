@@ -1,4 +1,4 @@
-use rustengine::{ui::{ui_button, ui_text_bg, UIElement, UI}, scene::{load_level_from_file, SceneManager}, mesh::Mesh as Obj, window::Window, level::Level, input};
+use rustengine::{ui::{UIElement, UI}, scene::{load_level_from_file, SceneManager}, mesh::Mesh as Obj, window::Window, level::Level, input};
 use rustengine::glm;
 
 struct Scene1 {
@@ -30,14 +30,10 @@ impl SceneManager for Scene1 {
 }
 
 pub fn build() -> (Vec<Obj>, Vec<UIElement>, Box<dyn SceneManager>) {
-    let mut uiels: Vec<UIElement> = Vec::new();
+    let uiels: Vec<UIElement> = Vec::new();
 
-    uiels.push(ui_button(ui_text_bg("Test Button", 5.0, glm::vec3(10.0, 100.0, 0.0), glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec2(1.0, -2.0), glm::vec4(0.0, 0.0, 0.0, 0.5)), test_button));
+    //uiels.push(ui_button(ui_text_bg("Test Button", 5.0, glm::vec3(10.0, 100.0, 0.0), glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec2(1.0, -2.0), glm::vec4(0.0, 0.0, 0.0, 0.5))));
     //uiels.push(ui_button(ui_sprite("blue_grad", glm::vec2(10.0, 10.0), glm::vec3(10.0, 130.0, 0.0)), test_button));
     
     (load_level_from_file("level"), uiels, Box::new(Scene1 {move_speed: 10.0}))
-}
-
-fn test_button(_level: &Level, _ui: &UI) {
-    println!("clicked");
 }
