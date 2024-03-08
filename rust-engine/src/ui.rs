@@ -17,7 +17,7 @@ pub enum UIElement {
 }
 
 // Displays
-// The Lower Level structs that hold data for Rendering
+// The Lower Level; Holds data for rendering
 pub enum UIDisplay {
     UISprite(UISprite),
     UIText(UIText)
@@ -33,6 +33,8 @@ pub struct UIWindow {
     titlebar_height: f32,
     position: nalgebra_glm::Vec3,
     size: nalgebra_glm::Vec2,
+    original_size: nalgebra_glm::Vec2,
+    collapsed_width: f32,
     colour: nalgebra_glm::Vec4,
     held: bool,
     last_mouse_position: nalgebra_glm::Vec2
@@ -42,13 +44,13 @@ impl UIWindow {
     pub fn add_element(&mut self, element: UIElement) { self.elements.push(element); }
     pub fn drop_element(&mut self, id: i32) { self.elements.remove(id as usize); }
 }
-pub fn ui_window(title: &str, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> UIWindow {
+pub fn ui_window(title: &str, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4, collapsed_width: f32) -> UIWindow {
     UIWindow { title: title.to_string(),
                elements: Vec::new(),
                close_button_hover: false,
                collapse_button_hover: false,
                collapsed: false,
-               titlebar_height: 32.0, position: position, size: size, colour: colour, held: false, last_mouse_position: nalgebra_glm::vec2(0.0, 0.0) }
+               titlebar_height: 32.0, position: position, size: size, original_size: size, collapsed_width: collapsed_width, colour: colour, held: false, last_mouse_position: nalgebra_glm::vec2(0.0, 0.0) }
 }
 
 // Click Logic Struct
@@ -206,7 +208,16 @@ impl UI {
             if mouse_pos_static.x > (win.position.x + (win.size.x - (win.titlebar_height * 2.0))) && mouse_pos_static.x < (win.position.x + (win.size.x - win.titlebar_height)) &&
                mouse_pos_static.y > (win.position.y + (win.size.y - win.titlebar_height)) && mouse_pos_static.y < (win.position.y + win.size.y) {
                 if window.get_mouse_button_down(glfw::MOUSE_BUTTON_1) {
-                    win.collapsed = !win.collapsed;
+                    if win.collapsed {
+                        win.collapsed = false;
+                        win.position.y -= win.original_size.y - win.titlebar_height;
+                        win.size = win.original_size;
+                    }
+                    else {
+                        win.collapsed = true;
+                        win.position.y += win.original_size.y - win.titlebar_height;
+                        win.size = nalgebra_glm::vec2(win.collapsed_width, win.titlebar_height);
+                    }
                 }
                 win.collapse_button_hover = true;
             }
@@ -324,7 +335,7 @@ impl UI {
     pub fn add_window(&mut self, title: &str, position: nalgebra_glm::Vec3, size: nalgebra_glm::Vec2, colour: nalgebra_glm::Vec4) -> &mut UIWindow {
         let window = self.windows.len();
         
-        self.windows.push(ui_window(title, position, size, colour));
+        self.windows.push(ui_window(title, position, size, colour, self.string_size(title, 2.0).x + 86.0));
 
         &mut self.windows[window]
     }

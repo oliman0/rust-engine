@@ -111,7 +111,7 @@ pub fn window(title: &str, scr_width: i32, scr_height: i32, viewport_w: i32, vie
     }
     //Setup GLFW window properties
     //OpenGL version
-    glfwWindowHint(CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(CONTEXT_VERSION_MINOR, 3);
     // Core profile = No backwards compatibility
     glfwWindowHint(OPENGL_PROFILE, OPENGL_CORE_PROFILE);

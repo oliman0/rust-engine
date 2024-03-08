@@ -44,7 +44,7 @@ impl<'a> Engine<'a> {
 }
 pub fn engine(name: &str, scr_w: i32, scr_h: i32, disp_w: i32, disp_h: i32) -> Engine {
     Engine { window: window(name, scr_w, scr_h, disp_w, disp_h, 4.0),
-         scenes: Vec::new(), active_scene: -1, framebuffer: framebuffer(disp_w, disp_h, scr_w, scr_h) }
+         scenes: Vec::new(), active_scene: -1, framebuffer: framebuffer(disp_w, disp_h, scr_w, scr_h)}
 }
 
 fn clear_screen(col: &nalgebra_glm::Vec4) {unsafe {gl::ClearColor(col.x, col.y, col.z, col.w); gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);}}

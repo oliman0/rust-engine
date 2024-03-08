@@ -12,6 +12,8 @@ pub struct Level {
 impl Level {
     pub fn draw(&self) {
         self.shader.set_uniform_mat4("view", &self.camera.view());
+        self.shader.set_uniform_vec3("viewPos", &self.camera.get_position());
+        self.shader.set_uniform_vec3("lightPos", &nalgebra_glm::vec3(0.0, 2.5, 0.0));
 
         for obj in &self.objects {
             obj.draw(&self.shader);
@@ -33,5 +35,5 @@ pub fn level(objs: Vec<Mesh>, pos: nalgebra_glm::Vec3, scr_width: f32, scr_heigh
     let shader = shader("./shaders/shader.vert", "./shaders/shader.frag");
     shader.set_uniform_mat4("projection", &projection);
 
-    Level { objects: objs, camera: camera(pos), projection: projection, shader: shader }
+    Level { objects: objs, camera: camera(pos), projection: projection, shader: shader}
 }

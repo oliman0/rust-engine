@@ -13,6 +13,7 @@ pub mod engine_manager;
 pub mod ui;
 
 pub use nalgebra_glm as glm;
+pub use gl;
 
 //
 //  GLFW KEY DEFS

@@ -1,0 +1,240 @@
+#version 430 core
+
+#define PI 3.14159265359
+#define FOV 90.0
+
+layout (local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D imgOutput;
+
+uniform vec2 screenSize;
+uniform mat4 view;
+uniform vec3 pos;
+
+float RandomValue(inout uint state)
+{
+    state = state * 747796405 + 2891336453;
+    uint result = ((state >> ((state >> 28) + 4)) ^ state ) * 277803737;
+    result = (result >> 22) ^ result;
+    return result / 4294967295.0;
+}
+
+float RandomValueNormalDistribution(inout uint state)
+{
+    float theta = 2 * PI * RandomValue(state);
+    float rho = sqrt(-2 * log(RandomValue(state)));
+    return rho * cos(theta);
+}
+
+vec3 RandomDirection(inout uint state) {
+    for (int safetyLimit = 0; safetyLimit < 100; safetyLimit++) {
+        float x = RandomValue(state) * 2 - 1;
+        float y = RandomValue(state) * 2 - 1;
+        float z = RandomValue(state) * 2 - 1;
+        vec3 point = vec3(x, y, z);
+        float sqrtDistFromCentre = dot(point, point);
+
+        if (sqrtDistFromCentre <= 1) {
+            return point / sqrt(sqrtDistFromCentre);
+        }
+    }
+    return vec3(0, 0, 0);
+}
+
+vec3 RandomDirectionHemisphere(vec3 normal, inout uint state) {
+    vec3 dir = RandomDirection(state);
+    return dir * sign(dot(normal, dir));
+}
+
+struct Material {
+    vec3 colour;
+    vec3 lightColour;
+    float light;
+    float smoothness;
+};
+
+struct Sphere {
+    vec3 center;
+    float radius;
+    Material material;
+};
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+struct HitInfo {
+    vec3 point;
+    vec3 normal;
+    float dst;
+    bool hit;
+    Material material;
+};
+
+mat4 translate(vec3 delta)
+{
+    mat4 m = mat4(0.0);
+    m[0][0] = 1;
+    m[1][1] = 1;
+    m[2][2] = 1;
+    m[3] = vec4(delta, 1.0);
+    return m;
+}
+
+mat4 identity()
+{
+    mat4 m = mat4(0.0);
+    m[0][0] = 1;
+    m[1][1] = 1;
+    m[2][2] = 1;
+    m[3][3] = 1;
+    return m;
+}
+
+float lerp(float start, float end, float t) {
+    return start + (end - start) * t;
+}
+
+vec3 lerp_vec3(vec3 start, vec3 end, float t) {
+    return vec3(
+        lerp(start.x, end.x, t),
+        lerp(start.y, end.y, t),
+        lerp(start.z, end.z, t)
+    );
+}
+
+HitInfo RaySphere(Ray ray, Sphere sphere) {
+    HitInfo hit;
+
+    vec3 oc = ray.origin - (translate(-pos) * vec4(sphere.center, 1.0)).xyz;
+
+    float a = dot(ray.direction, ray.direction);
+    float b = 2 * dot(oc, ray.direction);
+    float c = dot(oc, oc) - sphere.radius * sphere.radius;
+
+    float discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        hit.hit = false;
+        return hit;
+    }
+
+    float t_hit = (-b - sqrt(discriminant)) / (2 * a);
+    if (t_hit > 0.0001) {
+        hit.material = sphere.material;
+        hit.point = ray.origin + ray.direction * t_hit;
+        hit.dst = t_hit;
+        hit.normal = normalize(hit.point - (translate(-pos) * vec4(sphere.center, 1.0)).xyz);
+        hit.hit = true;
+        return hit;
+    }
+    else {
+        hit.hit = false;
+        return hit;
+    }
+}
+
+HitInfo TraceSpheres(Ray ray, Sphere spheres[100], int numSpheres) {
+    HitInfo rec_hit;
+    HitInfo hit;
+    hit.hit = false;
+    hit.dst = 9999.9;
+    hit.material.colour = vec3(0.2, 0.2, 0.2);
+    hit.material.smoothness = 0.0;
+
+    for (int i = 0; i < numSpheres; i++) {
+        rec_hit = RaySphere(ray, spheres[i]);
+        if (rec_hit.hit == true && rec_hit.dst < hit.dst) hit = rec_hit;
+    }
+
+    return hit;
+}
+
+vec3 Trace(Ray ray, Sphere spheres[100], int numSpheres, int maxBounce, inout uint randstate) {
+    vec3 light = vec3(0.0, 0.0, 0.0);
+    vec3 rayColour = vec3(1.0, 1.0, 1.0);
+
+    for (int b = 0; b <= maxBounce; b++) {
+        HitInfo hit = TraceSpheres(ray, spheres, numSpheres);
+
+        if (hit.hit) {
+            ray.origin = hit.point;
+            vec3 diffuseDir = normalize(hit.normal + RandomDirection(randstate));
+            vec3 specularDir = reflect(ray.direction, hit.normal);
+            ray.direction = lerp_vec3(diffuseDir, specularDir, hit.material.smoothness);
+
+            light += (hit.material.lightColour * hit.material.light) * rayColour;
+            rayColour *= hit.material.colour;
+        }
+        else {
+            break;
+        }
+    }
+
+    return light;
+}
+
+void main() {
+    vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    uint randstate = texelCoord.y * texelCoord.x + texelCoord.x;
+
+    float imageAspectRatio = screenSize.x / screenSize.y;
+
+    float x = (2 * ((texelCoord.x + 0.5) / screenSize.x) - 1) * tan((FOV / 2) * (PI / 180)) * imageAspectRatio;
+    float y = (1 - 2 * (texelCoord.y + 0.5) / screenSize.y) * tan((FOV / 2) * (PI / 180));
+
+    Ray ray;
+    ray.origin = vec3(0.0, 0.0, 0.0);
+
+    mat4 cameraToWorld = view;
+    vec4 rayOriginWorld = vec4(ray.origin, 1.0) * cameraToWorld;
+    vec4 rayPWorld = vec4(x, y, -1, 1.0) * cameraToWorld;
+    vec3 rayDirection = rayPWorld.xyz - rayOriginWorld.xyz;
+
+    ray.direction = normalize(rayDirection);
+
+    Sphere sphere[100];
+	sphere[0].center = vec3(-10.0, -2.0, -22.0);
+    sphere[0].radius = 10.0;
+    sphere[0].material.colour = vec3(0.0, 0.0, 0.0);
+    sphere[0].material.lightColour = vec3(1.0, 1.0, 1.0);
+    sphere[0].material.light = 3.0;
+    sphere[0].material.smoothness = 0.0;
+
+	sphere[1].center = vec3(2.0, 4.0, -12.0);
+    sphere[1].radius = 2.0;
+    sphere[1].material.colour = vec3(1.0, 1.0, 0.1);
+    sphere[1].material.lightColour = vec3(0.0, 0.0, 0.0);
+    sphere[1].material.light = 0.0;
+    sphere[1].material.smoothness = 0.0;
+
+    sphere[2].center = vec3(5.0, 25.0, -12.0);
+    sphere[2].radius = 20.0;
+    sphere[2].material.colour = vec3(0.8, 0.8, 0.8);
+    sphere[2].material.lightColour = vec3(0.0, 0.0, 0.0);
+    sphere[2].material.light = 0.0;
+    sphere[2].material.smoothness = 0.0;
+
+    sphere[3].center = vec3(7.0, 4.0, -9.0);
+    sphere[3].radius = 2.0;
+    sphere[3].material.colour = vec3(1.0, 1.0, 1.0);
+    sphere[3].material.lightColour = vec3(0.0, 0.0, 0.0);
+    sphere[3].material.light = 0.0;
+    sphere[3].material.smoothness = 1.0;
+
+    sphere[4].center = vec3(25.0, -2.0, -17.0);
+    sphere[4].radius = 5.0;
+    sphere[4].material.colour = vec3(0.0, 0.0, 0.0);
+    sphere[4].material.lightColour = vec3(1.0, 1.0, 1.0);
+    sphere[4].material.light = 1.0;
+    sphere[4].material.smoothness = 0.0;
+
+    for (int rayi = 0; rayi < 100; rayi++) {
+        value += vec4(Trace(ray, sphere, 5, 30, randstate), 1.0);
+    }
+
+    value /= 100;
+
+    imageStore(imgOutput, texelCoord, value);
+}

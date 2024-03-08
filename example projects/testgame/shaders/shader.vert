@@ -1,18 +1,26 @@
-#version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec2 tex;
-  
-    out vec4 vCol;
-    out vec2 texCoord;
+#version 430 core
 
-    uniform mat4 projection;
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform vec4 colour;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec2 aTexCoords;
+layout (location = 2) in vec3 aNormal;
 
-    void main() {
-       gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1.0);
-       vCol = colour;
+out VS_OUT {
+    vec3 FragPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 Colour;
+} vs_out;
 
-       texCoord = tex;
-    }
+uniform mat4 projection;
+uniform mat4 model;
+uniform mat4 view;
+uniform vec4 colour;
+
+void main() {
+    gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1.0);
+
+    vs_out.Colour = colour;
+    vs_out.Normal = aNormal;
+    vs_out.TexCoords = aTexCoords;
+    vs_out.FragPos = (model * vec4(aPos, 1.0)).xyz;
+}
