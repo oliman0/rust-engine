@@ -6,8 +6,8 @@ use rustengine::glm;
 
 const SCR_WIDTH: i32 = 1920;
 const SCR_HEIGHT: i32 = 1080;
-const DISP_WIDTH: i32 = 480;
-const DISP_HEIGHT: i32 = 270;
+const DISP_WIDTH: i32 = 320;
+const DISP_HEIGHT: i32 = 180;
 
 //glm::vec4(0.07, 0.13, 0.17, 1.0)
 

@@ -20,18 +20,19 @@ pub struct Scene {
     clear_colour: nalgebra_glm::Vec4,
     // MANAGER
     build_fn: fn() -> (Vec<Mesh>, Vec<UIElement>, Box<dyn SceneManager>),
-    manager: Box<dyn SceneManager>,
-    fps_tmp: i32
+    manager: Box<dyn SceneManager>
 }
 
 impl Scene {
-    pub fn draw_level(&self) { self.level.draw(); }
-    pub fn draw_ui(&self) { self.ui.draw(); self.ui.draw_string(&self.fps_tmp.to_string(), 5.0, nalgebra_glm::vec3(10.0, 1000.0, 0.0), &nalgebra_glm::vec4(1.0, 0.0, 0.0, 1.0), false); }
+    pub fn draw_level(&mut self) { self.level.draw(); }
+    pub fn draw_ui(&self) { self.ui.draw(); }
     pub fn add_obj(&mut self, obj: Mesh) { self.level.add_obj(obj); }
     pub fn update(&mut self, window: &mut Window, delta_time: f32) {
         self.ui.update(window);
 
-        self.fps_tmp = window.get_fps();
+        self.ui.draw_string(&window.get_fps().to_string(), 5.0, nalgebra_glm::vec3(10.0, 1000.0, 0.0), &nalgebra_glm::vec4(1.0, 0.0, 0.0, 1.0), false);
+        let pos = self.level.camera().get_position();
+        self.ui.draw_string(&(((pos.x * 10.0).round() / 10.0).to_string() + " " + &((pos.y * 10.0).round() / 10.0).to_string() + " " + &((pos.z * 10.0).round() / 10.0).to_string()), 5.0, nalgebra_glm::vec3(10.0, 940.0, 0.0), &nalgebra_glm::vec4(1.0, 0.0, 0.0, 1.0), false);
 
         if window.get_key_down(glfw::KEY_R) {
             self.reload();
@@ -56,7 +57,7 @@ pub fn scene(build: fn() -> (Vec<Mesh>, Vec<UIElement>, Box<dyn SceneManager>), 
     let (objs, elements , manager) = (build)();
 
     Scene { level: level(objs, pos, scr_width, scr_height), ui: ui(elements, "wave-standard", 12.0, scr_width, scr_height), 
-        clear_colour: col, manager: manager, build_fn: build, fps_tmp: 0 }
+        clear_colour: col, manager: manager, build_fn: build }
 }
 
 pub fn load_level_from_file(path: &str) -> Vec<Mesh> {

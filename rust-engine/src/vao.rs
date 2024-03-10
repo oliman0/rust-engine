@@ -48,11 +48,11 @@ pub fn create_vao_normals(vertices: &[f32]) -> (u32, u32) {
 
         gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 8 * mem::size_of::<GLfloat>() as GLsizei, ptr::null());
         gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(1, 2, gl::FLOAT, gl::FALSE, 8 * mem::size_of::<GLfloat>() as GLsizei,
+        gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, 8 * mem::size_of::<GLfloat>() as GLsizei,
                                (3 * mem::size_of::<GLfloat>()) as *const c_void);
         gl::EnableVertexAttribArray(1);
-        gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, 8 * mem::size_of::<GLfloat>() as GLsizei,
-                               (3 * mem::size_of::<GLfloat>()) as *const c_void);
+        gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, 8 * mem::size_of::<GLfloat>() as GLsizei,
+                               (6 * mem::size_of::<GLfloat>()) as *const c_void);
         gl::EnableVertexAttribArray(2);
 
         // note that this is allowed, the call to gl::VertexAttribPointer registered vbo as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind

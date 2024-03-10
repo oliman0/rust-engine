@@ -74,6 +74,24 @@ impl Shader {
             gl::Uniform1f(iloc, value);
         }
     }
+    pub fn set_uniform_int(&self, name: &str, value: i32) {
+        unsafe {
+            let cname = CString::new(name.as_bytes()).unwrap();
+
+            gl::UseProgram(self.shader_program);
+            let iloc = gl::GetUniformLocation(self.shader_program, cname.as_ptr());
+            gl::Uniform1i(iloc, value);
+        }
+    }
+    pub fn set_uniform_uint(&self, name: &str, value: u32) {
+        unsafe {
+            let cname = CString::new(name.as_bytes()).unwrap();
+
+            gl::UseProgram(self.shader_program);
+            let iloc = gl::GetUniformLocation(self.shader_program, cname.as_ptr());
+            gl::Uniform1ui(iloc, value);
+        }
+    }
 }
 pub fn shader(v_path: &str, f_path: &str) -> Shader {
     let vshader_s = fs::read_to_string(v_path)

@@ -1,8 +1,9 @@
-use rustengine::{ui::{UIElement, UI}, scene::{load_level_from_file, SceneManager}, mesh::{Mesh, mesh}, window::Window, level::Level, input};
+use rustengine::{ui::{UIElement, UI}, scene::{load_level_from_file, SceneManager}, mesh::{Mesh, mesh, mesh_notex}, window::Window, level::Level, input};
 use rustengine::glm;
 
 struct Scene1 {
-    move_speed: f32
+    move_speed: f32,
+    full_bright: bool
 }
 
 impl SceneManager for Scene1 {
@@ -22,6 +23,11 @@ impl SceneManager for Scene1 {
             movement += glm::normalize(&glm::cross(&level.camera().get_front(), &glm::vec3(0.0, 1.0, 0.0)));
         }
 
+        if window.get_key_down(input::KEY_B) {
+            self.full_bright = !self.full_bright;
+            level.shader().set_uniform_bool("fullBright", self.full_bright);
+        }
+
         level.camera_mut().move_position(&(movement * self.move_speed * delta_time));
 
         level.camera_mut().add_pitch_yaw(&(window.get_mouse_offset()));
@@ -33,11 +39,22 @@ pub fn build() -> (Vec<Mesh>, Vec<UIElement>, Box<dyn SceneManager>) {
     let uiels: Vec<UIElement> = Vec::new();
     let mut objs: Vec<Mesh> = Vec::new();
 
-    objs.push(mesh(glm::vec3(-10.0, 0.0, -10.0), 20.0, 0.0, 20.0, "largecheck"));
+    objs.push(mesh(glm::vec3(5.0, 0.0, -10.0), 5.0, 5.0, 5.0, "largecheck"));
 
+    objs.push(mesh(glm::vec3(0.0, 0.0, 0.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(10.0, 0.0, 0.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(20.0, 0.0, 0.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(30.0, 0.0, 0.0), 10.0, 10.0, 0.1, "largecheck"));
+
+    objs.push(mesh(glm::vec3(0.0, 0.0, 10.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(10.0, 0.0, 10.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(20.0, 0.0, 10.0), 10.0, 10.0, 0.1, "largecheck"));
+    objs.push(mesh(glm::vec3(30.0, 0.0, 10.0), 10.0, 10.0, 0.1, "largecheck"));
+
+    objs.push(mesh_notex(glm::vec3(-50.0, -0.1, -50.0), 100.0, 0.1, 100.0, glm::vec4(0.3, 0.3, 0.3, 1.0)));
 
     //uiels.push(ui_button(ui_text_bg("Test Button", 5.0, glm::vec3(10.0, 100.0, 0.0), glm::vec4(0.0, 0.0, 0.0, 1.0), glm::vec2(1.0, -2.0), glm::vec4(0.0, 0.0, 0.0, 0.5))));
     //uiels.push(ui_button(ui_sprite("blue_grad", glm::vec2(10.0, 10.0), glm::vec3(10.0, 130.0, 0.0)), test_button));
     
-    (objs, uiels, Box::new(Scene1 {move_speed: 10.0}))
+    (objs, uiels, Box::new(Scene1 {move_speed: 10.0, full_bright: false}))
 }

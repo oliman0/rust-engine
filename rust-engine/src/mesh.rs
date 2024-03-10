@@ -52,48 +52,53 @@ impl Mesh {
     }
     pub fn move_pos(&mut self, vec: &nalgebra_glm::Vec3) { self.position += vec; }
     pub fn set_pos(&mut self, vec: nalgebra_glm::Vec3) { self.position = vec; }
+    pub fn get_pos(&self) -> &nalgebra_glm::Vec3 { &self.position }
 }
 fn create(pos: nalgebra_glm::Vec3, sizex: f32, sizey: f32, sizez: f32, texture: u32, colour: nalgebra_glm::Vec4, using_texture: bool) -> Mesh { 
     let vertices: [f32; 288] = [
-        // x y z  u v  nx ny nz
-        0.0,		 0.0,		-sizez,  0.0, 0.0, 0.0,  0.0, -1.0,
-        sizex,	 0.0,		-sizez,  1.0, 0.0, 0.0,  0.0, -1.0,
-        sizex,	 sizey,	-sizez,  1.0, 1.0, 0.0,  0.0, -1.0,
-        sizex,	 sizey,	-sizez,  1.0, 1.0, 0.0,  0.0, -1.0,
-        0.0,		 sizey,	-sizez,  0.0, 1.0, 0.0,  0.0, -1.0, 
-        0.0,		 0.0,		-sizez,  0.0, 0.0, 0.0,  0.0, -1.0, 
-        0.0,		 0.0,		 0.0,	  0.0, 0.0, 0.0,  0.0, 1.0,
-        sizex,	 0.0,		 0.0,	  1.0, 0.0, 0.0,  0.0, 1.0,
-        sizex,	 sizey,	 0.0,	  1.0, 1.0, 0.0,  0.0, 1.0,
-        sizex,	 sizey,	 0.0,	  1.0, 1.0, 0.0,  0.0, 1.0,
-        0.0,		 sizey,	 0.0,	  0.0, 1.0, 0.0,  0.0, 1.0,
-        0.0,		 0.0,		 0.0,	  0.0, 0.0, 0.0,  0.0, 1.0,
-        0.0,		 sizey,	 0.0,	  1.0, 1.0, -1.0,  0.0,  0.0,
-        0.0,		 sizey,	-sizez,  0.0, 1.0, -1.0,  0.0,  0.0,
-        0.0,		 0.0,		-sizez,  0.0, 0.0, -1.0,  0.0,  0.0,
-        0.0,		 0.0,		-sizez,  0.0, 0.0, -1.0,  0.0,  0.0,
-        0.0,		 0.0,		 0.0,	  1.0, 0.0, -1.0,  0.0,  0.0,
-        0.0,		 sizey,	 0.0,	  1.0, 1.0, -1.0,  0.0,  0.0,
-        sizex,	 sizey,	 0.0,	  1.0, 1.0, 1.0,  0.0,  0.0,
-        sizex,	 sizey,	-sizez,  0.0, 1.0, 1.0,  0.0,  0.0,
-        sizex,	 0.0,		-sizez,  0.0, 0.0, 1.0,  0.0,  0.0,
-        sizex,	 0.0,		-sizez,  0.0, 0.0, 1.0,  0.0,  0.0,
-        sizex,	 0.0,		 0.0,	  1.0, 0.0, 1.0,  0.0,  0.0,
-        sizex,	 sizey,	 0.0,	  1.0, 1.0, 1.0,  0.0,  0.0,
-        0.0,		 0.0,		-sizez,  0.0, 1.0, 0.0, -1.0,  0.0,
-        sizex,	 0.0,		-sizez,  1.0, 1.0, 0.0, -1.0,  0.0,
-        sizex,	 0.0,		 0.0,	  1.0, 0.0, 0.0, -1.0,  0.0,
-        sizex,	 0.0,		 0.0,	  1.0, 0.0, 0.0, -1.0,  0.0,
-        0.0,		 0.0,		 0.0,	  0.0, 0.0, 0.0, -1.0,  0.0,
-        0.0,		 0.0,		-sizez,  0.0, 1.0, 0.0, -1.0,  0.0,
-        0.0,		 sizey,	-sizez,  0.0, 1.0, 0.0,  1.0,  0.0,
-        sizex,     sizey,	-sizez,  1.0, 1.0, 0.0,  1.0,  0.0,
-        sizex,     sizey,	 0.0,	  1.0, 0.0, 0.0,  1.0,  0.0,
-        sizex,     sizey,	 0.0,	  1.0, 0.0, 0.0,  1.0,  0.0,
-        0.0,		 sizey,	 0.0,	  0.0, 0.0, 0.0,  1.0,  0.0,
-        0.0,		 sizey,	-sizez,  0.0, 1.0,  0.0,  1.0,  0.0];   
+        0.0, 0.0, 0.0,  0.0,  0.0, -1.0,  0.0, 0.0,
+        sizex, 0.0, 0.0,  0.0,  0.0, -1.0,  1.0, 0.0,
+        sizex,  sizey, 0.0,  0.0,  0.0, -1.0,  1.0, 1.0,
+        sizex,  sizey, 0.0,  0.0,  0.0, -1.0,  1.0, 1.0,
+       0.0,  sizey, 0.0,  0.0,  0.0, -1.0,  0.0, 1.0,
+       0.0, 0.0, 0.0,  0.0,  0.0, -1.0,  0.0, 0.0,
+   
+       0.0, 0.0,  sizez,  0.0,  0.0, 1.0,   0.0, 0.0,
+        sizex, 0.0,  sizez,  0.0,  0.0, 1.0,   1.0, 0.0,
+        sizex,  sizey,  sizez,  0.0,  0.0, 1.0,   1.0, 1.0,
+        sizex,  sizey,  sizez,  0.0,  0.0, 1.0,   1.0, 1.0,
+       0.0,  sizey,  sizez,  0.0,  0.0, 1.0,   0.0, 1.0,
+       0.0, 0.0,  sizez,  0.0,  0.0, 1.0,   0.0, 0.0,
+   
+       0.0,  sizey,  sizez, -1.0,  0.0,  0.0,  1.0, 0.0,
+       0.0,  sizey, 0.0, -1.0,  0.0,  0.0,  1.0, 1.0,
+       0.0, 0.0, 0.0, -1.0,  0.0,  0.0,  0.0, 1.0,
+       0.0, 0.0, 0.0, -1.0,  0.0,  0.0,  0.0, 1.0,
+       0.0, 0.0,  sizez, -1.0,  0.0,  0.0,  0.0, 0.0,
+       0.0,  sizey,  sizez, -1.0,  0.0,  0.0,  1.0, 0.0,
+   
+        sizex,  sizey,  sizez,  1.0,  0.0,  0.0,  1.0, 0.0,
+        sizex,  sizey, 0.0,  1.0,  0.0,  0.0,  1.0, 1.0,
+        sizex, 0.0, 0.0,  1.0,  0.0,  0.0,  0.0, 1.0,
+        sizex, 0.0, 0.0,  1.0,  0.0,  0.0,  0.0, 1.0,
+        sizex, 0.0,  sizez,  1.0,  0.0,  0.0,  0.0, 0.0,
+        sizex,  sizey,  sizez,  1.0,  0.0,  0.0,  1.0, 0.0,
+   
+       0.0, 0.0, 0.0,  0.0, -1.0,  0.0,  0.0, 1.0,
+        sizex, 0.0, 0.0,  0.0, -1.0,  0.0,  1.0, 1.0,
+        sizex, 0.0,  sizez,  0.0, -1.0,  0.0,  1.0, 0.0,
+        sizex, 0.0,  sizez,  0.0, -1.0,  0.0,  1.0, 0.0,
+       0.0, 0.0,  sizez,  0.0, -1.0,  0.0,  0.0, 0.0,
+       0.0, 0.0, 0.0,  0.0, -1.0,  0.0,  0.0, 1.0,
+   
+       0.0,  sizey, 0.0,  0.0,  1.0,  0.0,  0.0, 1.0,
+        sizex,  sizey, 0.0,  0.0,  1.0,  0.0,  1.0, 1.0,
+        sizex,  sizey,  sizez,  0.0,  1.0,  0.0,  1.0, 0.0,
+        sizex,  sizey,  sizez,  0.0,  1.0,  0.0,  1.0, 0.0,
+       0.0,  sizey,  sizez,  0.0,  1.0,  0.0,  0.0, 0.0,
+       0.0,  sizey, 0.0,  0.0,  1.0,  0.0,  0.0, 1.0];   
     let (vao, vbo) = create_vao_normals(&vertices);
-    Mesh {vao: vao, vbo: vbo, position: pos, colour: colour, using_texture: using_texture, texture: texture, vert_to_draw: 32}
+    Mesh {vao: vao, vbo: vbo, position: pos, colour: colour, using_texture: using_texture, texture: texture, vert_to_draw: 36}
 }
 pub fn mesh_vertices(vertices: &[f32], numofvertices: usize, texture: &str) -> Mesh {
     let (vao, vbo) = create_vao(vertices); 

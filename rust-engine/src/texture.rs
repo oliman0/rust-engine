@@ -23,7 +23,7 @@ fn raw_generate_texture(fname: &str) -> u32 {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
 
-        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, width, height, 0, gl::RGBA, gl::UNSIGNED_BYTE, tex_data as *const c_void);
+        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::SRGB_ALPHA as i32, width, height, 0, gl::RGBA, gl::UNSIGNED_BYTE, tex_data as *const c_void);
 
         gl::BindTexture(gl::TEXTURE_2D, 0);
             
@@ -54,7 +54,7 @@ fn raw_generate_texture_and_size(fname: &str) -> (u32, f32, f32) {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
 
-        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, width, height, 0, gl::RGBA, gl::UNSIGNED_BYTE, tex_data as *const c_void);
+        gl::TexImage2D(gl::TEXTURE_2D, 0, gl::SRGB_ALPHA as i32, width, height, 0, gl::RGBA, gl::UNSIGNED_BYTE, tex_data as *const c_void);
 
         gl::BindTexture(gl::TEXTURE_2D, 0);
             
